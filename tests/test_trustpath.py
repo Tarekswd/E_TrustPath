@@ -94,6 +94,28 @@ class ControlPlane(unittest.TestCase):
             NetConfig(mix=("nope",)).validate()
 
 
+class ReputationSybils(unittest.TestCase):
+    def _run(self, policy, sybils, epochs=12):
+        return run(SimConfig(NetConfig(seed=3, malicious_frac=0.1, sybils=sybils, admission="open"),
+                             epochs=epochs, warmup=2, flows_per_epoch=20, fake_reports_per_epoch=5, report_policy=policy))
+
+    def test_naive_accepts_sybil_reports_flow_bound_rejects_them(self):
+        naive, bound = self._run("naive", 20), self._run("flow_bound", 20)
+        # naive: all fabricated reports accepted; flow-bound: only the 10 physical attackers' reports
+        self.assertEqual(naive["fake_reports_rejected"], 0)
+        self.assertEqual(bound["fake_reports_accepted"], 10 * 5 * 12)
+        self.assertEqual(bound["fake_reports_rejected"], 20 * 5 * 12)
+
+    def test_sybil_reports_distort_trust_only_under_naive_policy(self):
+        naive, bound = self._run("naive", 50, epochs=20), self._run("flow_bound", 50, epochs=20)
+        self.assertLess(naive["honest_trust_mean"], bound["honest_trust_mean"])
+        self.assertGreater(naive["malicious_trust_mean"], bound["malicious_trust_mean"])
+
+    def test_unknown_policy_rejected(self):
+        with self.assertRaises(ValueError):
+            run(SimConfig(NetConfig(seed=1), epochs=2, warmup=1, flows_per_epoch=2, report_policy="x"))
+
+
 class Routing(unittest.TestCase):
     def _diamond(self):
         g = nx.Graph()

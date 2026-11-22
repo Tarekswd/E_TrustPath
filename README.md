@@ -23,8 +23,11 @@ malicious nodes, and what that costs in latency and overhead.
    - `per_hop`: assumes authenticated per-hop receipts, so blame goes to the dropping node.
 
    Newcomers, including Sybils, start at 0.5.
-5. **Assumed honest:** the registry, the end hosts that report outcomes, and the outcome-sharing channel.
-   Malicious reporters (badmouthing or ballot-stuffing) are **out of scope** for v0.
+5. **Signed outcome reports.** Every outcome report is signed by its reporter and checked against the registry.
+   Attackers (malicious nodes and, under open admission, Sybil identities) may submit fabricated reports
+   (ballot-stuffing malicious nodes, badmouthing honest ones). Two acceptance policies are compared:
+   `naive` (any registered signer) and `flow_bound` (only physically attached nodes, i.e. reports must be bound to
+   traffic the reporter actually sent). Assumed honest: the registry.
 
 ## Strategies compared
 `shortest` (advertised latency), `reliability` (self-reported reliability), `trust` (observed trust + latency),
@@ -33,12 +36,12 @@ malicious nodes, and what that costs in latency and overhead.
 ## Adversaries
 blackhole (drops all), grayhole (drops 30 %), attract_drop (advertises 10x lower latency and perfect reliability,
 drops 80 %), colluding fake links between attract_drop nodes (a wormhole both colluders sign), impersonation
-(forged ads), Sybil identities (open vs controlled admission), benign crashes of 15 % of nodes halfway through a run.
+(forged ads), fabricated outcome reports from attackers and from Sybil identities (open admission), benign crashes of 15 % of nodes halfway through a run.
 
 ## Reproduce
 ```bash
 pip install -r requirements.txt           # networkx, cryptography (matplotlib optional, for plots)
-python3 -m unittest discover -s tests -v  # 21 tests
+python3 -m unittest discover -s tests -v  # 24 tests
 python3 experiments/run.py 10             # all scenarios, 10 seeds -> results/<timestamp>/
 ```
 

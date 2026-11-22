@@ -42,7 +42,7 @@ class NetConfig:
     malicious_frac: float = 0.0
     mix: tuple[str, ...] = ("blackhole", "grayhole", "attract_drop")
     collude: bool = True  # attract_drop nodes advertise fake 1 ms links between each other (wormhole)
-    sybils: int = 0  # fake identities created by the first attract_drop node (or first malicious node)
+    sybils: int = 0  # extra attacker identities (reputation-layer Sybils; see sim.py)
     admission: str = "controlled"
     crash_frac: float = 0.0  # honest nodes that crash halfway through the run (see sim.py)
 
@@ -104,20 +104,15 @@ class Network:
                 ads += [self._ad(a, b, 1.0), self._ad(b, a, 1.0)]
                 self.fake_links.add(frozenset((a, b)))
 
+        # Sybils: extra identities the attacker registers. They have no physical links (a link needs a
+        # signature from an honest endpoint too); their power is in the reputation layer, where each
+        # identity can submit signed outcome reports (sim.py). Admitted only under open admission.
         self.sybil_ids: set[int] = set()
-        anchor = (liars or sorted(bad) or [None])[0]
-        if cfg.sybils and anchor is not None:
-            ring = [anchor]
-            for k in range(cfg.sybils):
-                sid = cfg.n + k
-                self.ids[sid] = Identity(sid, cfg.seed)
-                if self.registry.admit(self.ids[sid], operator_approved=False):
-                    self.sybil_ids.add(sid)
-                    self.behavior[sid] = self.behavior[anchor]
-                ring.append(sid)
-            for a, b in zip(ring, ring[1:]):
-                ads += [self._ad(a, b, 1.0), self._ad(b, a, 1.0)]
-                self.fake_links.add(frozenset((a, b)))
+        for k in range(cfg.sybils):
+            sid = cfg.n + k
+            self.ids[sid] = Identity(sid, cfg.seed)
+            if self.registry.admit(self.ids[sid], operator_approved=False):
+                self.sybil_ids.add(sid)
 
         # Impersonation: each malicious node forges an ad in the name of an honest neighbour,
         # claiming a 1 ms link to the attacker, signed with the attacker's own key.

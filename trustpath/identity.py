@@ -89,3 +89,33 @@ def verify_ad(reg: Registry, s: SignedAd) -> bool:
         return True
     except InvalidSignature:
         return False
+
+
+@dataclass(frozen=True)
+class OutcomeReport:
+    """`reporter` claims that a packet over `intermediates` was (not) delivered, blaming `blamed`."""
+
+    reporter: int
+    intermediates: tuple[int, ...]
+    delivered: bool
+    blamed: int  # -1 = none
+    epoch: int
+
+    def encode(self) -> bytes:
+        return b"TPRP1" + struct.pack(f">IIiBi{len(self.intermediates)}I", self.reporter, self.epoch, self.blamed,
+                                      self.delivered, len(self.intermediates), *self.intermediates)
+
+
+def sign_report(ident: Identity, r: OutcomeReport) -> bytes:
+    return ident.sign(r.encode())
+
+
+def verify_report(reg: Registry, r: OutcomeReport, sig: bytes) -> bool:
+    pk = reg.key(r.reporter)
+    if pk is None:
+        return False
+    try:
+        Ed25519PublicKey.from_public_bytes(pk).verify(sig, r.encode())
+        return True
+    except InvalidSignature:
+        return False

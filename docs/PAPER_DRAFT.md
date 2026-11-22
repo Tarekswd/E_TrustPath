@@ -1,6 +1,6 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (`results/20261122T102858Z/`, 300 runs, 10 seeds). Sections marked
+*Working draft. All results are SIMULATED (`results/20261122T152805Z/`, 360 runs, 10 seeds). Sections marked
 **[TODO]** are not done. Related work is not yet verified; no novelty is claimed.*
 
 ## Abstract
@@ -47,11 +47,25 @@ Per-hop attribution did not change delivery (trust 0.875 vs 0.882 e2e; multipath
 It did raise detection precision to 1.0, from 0.50 (single path, flagged in only 1 run) and 0.69. Recall stays
 very low (at most 0.09) in all four configurations.
 
-### C. Sybils (f = 0.1, 20 Sybil identities)
-Open admission let all 20 Sybils in, yet results are identical to controlled admission. Because a link needs
-signatures from both ends, Sybils can attach only to attacker-controlled nodes. They form a dead-end chain that
-no honest path uses. **This is a property of the model, not evidence that Sybils are harmless.** **[TODO]**
-Model Sybils that inflate trust through recommendations, or that take over many physical attachment points.
+### C. Sybils in the reputation layer (f = 0.1, open admission, 5 fabricated reports per attacker identity per epoch)
+Redesigned after v0, where Sybils were attached only through links no honest node would co-sign, so they had no
+effect. Now every attacker identity, physical or Sybil, submits signed fabricated reports, half ballot-stuffing a
+malicious node and half badmouthing a random honest node.
+
+| Sybils | policy | trust: delivery / exposure | trust_multi: delivery / exposure | honest trust (trust) |
+|---|---|---|---|---|
+| 0 | either | 0.722 / 0.327 | 0.952 / 0.112 | 0.256 |
+| 10 | naive | 0.600 / 0.450 | 0.896 / 0.252 | 0.186 |
+| 10 | flow_bound | 0.738 / 0.321 | 0.953 / 0.119 | 0.256 |
+| 50 | naive | 0.450 / 0.604 | 0.742 / 0.531 | 0.098 |
+| 50 | flow_bound | 0.716 / 0.336 | 0.953 / 0.118 | 0.253 |
+
+(Mean of 10 seeds; CIs in summary.md, all half-widths at most 0.07.) Under `naive` acceptance, Sybils scale the
+attack: with 50 Sybils single-path delivery drops to 0.45. `flow_bound` makes Sybils irrelevant, with results
+statistically indistinguishable from 0 Sybils. But even with no Sybils, lying physical attackers lower trust-routing
+delivery from 0.925 (scenario A, no lying) to 0.722, because badmouthing pushes honest nodes' trust (0.26) below the
+attackers' (0.87). Multipath routing is far more robust (0.95). **[TODO]** Report weighting and consistency
+checks against lying physical reporters.
 
 ### D. Benign crashes (15 % of nodes crash at epoch 20)
 trust 0.724 +/- 0.079, shortest 0.730 +/- 0.023, trust_multi 0.919 +/- 0.032. Single-path trust gives no benefit,

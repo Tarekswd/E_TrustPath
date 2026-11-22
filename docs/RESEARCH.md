@@ -9,7 +9,7 @@
 | 4 | Detect inconsistent or malicious advertisements | Latency cross-check flags; trust threshold; precision/recall reported |
 | 5 | Does trust-aware routing reduce exposure? | Scenario A (simulated) |
 | 6 | Trade-offs: trust vs latency / availability / overhead | Stretch, copies per flow, unreachable flows reported |
-| 7 | Sybil and collusion vulnerability | Scenario C; collusion fake links demonstrated in a test |
+| 7 | Sybil and collusion vulnerability | Scenario C (fabricated reports, naive vs flow-bound); collusion fake links demonstrated in a test |
 
 ## Novelty status (honest)
 - Beta reputation and watchdog/pathrater-style avoidance of misbehaving nodes are **established**, mainly in
@@ -21,14 +21,16 @@
   signatures alone fail. Scenario B is the first experiment for this. Whether this specific comparison already
   exists must be checked against the literature before any novelty claim.
 
-## Literature to verify before citing (none of these were fetched or checked during development)
-- SCION architecture papers and book (ETH Zurich / Network Security Group).
-- BGPsec (RFC 8205) and RPKI (RFC 6480) - number/title to be confirmed.
-- Jøsang & Ismail, "The Beta Reputation System" (2002) - venue and details to be confirmed.
-- Marti et al., "Mitigating routing misbehavior in mobile ad hoc networks" (watchdog/pathrater, MobiCom 2000) -
-  details to be confirmed.
-- Douceur, "The Sybil Attack" (IPTPS 2002) - details to be confirmed.
-- Path validation work (e.g. ICING, OPT) - to be identified properly.
+## References (verified 2026-11-22)
+- L. Chuat, M. Legner, D. Basin, D. Hausheer, S. Hitz, P. Müller, A. Perrig. *The Complete Guide to SCION: From Design
+  Principles to Formal Verification*. Springer, 2022. doi:10.1007/978-3-031-05288-0.
+- RFC 8205, *BGPsec Protocol Specification*; RFC 6480, *An Infrastructure to Support Secure Internet Routing* (RPKI).
+- R. Ismail, A. Jøsang. *The Beta Reputation System*. Bled eConference 2002.
+- S. Marti, T. Giuli, K. Lai, M. Baker. *Mitigating Routing Misbehavior in Mobile Ad Hoc Networks*. MobiCom 2000,
+  doi:10.1145/345910.345955.
+- J. R. Douceur. *The Sybil Attack*. IPTPS 2002, LNCS, doi:10.1007/3-540-45748-8_24.
+- T. H.-J. Kim et al. *Lightweight Source Authentication and Path Validation* (OPT). SIGCOMM 2014. OPT cites ICING
+  (*Verifying and Enforcing Network Paths with ICING*) as its predecessor.
 
 ## Results
 See the latest `results/<timestamp>/summary.md`. A summary is in docs/PAPER_DRAFT.md.

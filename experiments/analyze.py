@@ -13,11 +13,12 @@ from pathlib import Path
 # two-sided 95% Student-t critical values by degrees of freedom (from standard tables)
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228,
        14: 2.145, 19: 2.093, 29: 2.045}
-METRICS = ("delivery_ratio", "exposure", "median_stretch", "copies_per_flow", "trust_precision", "trust_recall")
+METRICS = ("delivery_ratio", "exposure", "median_stretch", "copies_per_flow", "trust_precision", "trust_recall",
+           "honest_trust_mean", "malicious_trust_mean", "fake_reports_accepted")
 KEYS = {
     "A_fraction": ("net_malicious_frac", "strategy"),
     "B_attribution": ("strategy", "attribution"),
-    "C_sybil": ("net_admission", "strategy"),
+    "C_sybil": ("net_sybils", "report_policy", "strategy"),
     "D_crash": ("strategy",),
 }
 
@@ -55,7 +56,7 @@ def main(raw, out):
             lines.append("| " + " | ".join(list(g) + [str(len(groups[g]))] + cells) + " |")
     sy = [r for r in rows if r["scenario"] == "C_sybil"]
     if sy:
-        lines.append("\nSybil identities admitted: " + ", ".join(sorted({f"{r['net_admission']}={r['sybils_admitted']}" for r in sy})))
+        lines.append("\nSybil identities (requested=admitted): " + ", ".join(sorted({f"{r['net_sybils']}={r['sybils_admitted']}" for r in sy})))
     lines.append("\nForged (impersonation) ads rejected per run: " + ", ".join(sorted({r['rejected_ads'] for r in rows}, key=int)))
     (out / "summary.md").write_text("\n".join(lines) + "\n")
     print((out / "summary.md").read_text())

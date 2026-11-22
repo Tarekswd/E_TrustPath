@@ -25,3 +25,13 @@ scenarios). One test initially failed because NaN != NaN in a determinism compar
 ### Incomplete
 Trust decay, malicious reporters, recommendation-based trust, larger and AS-like topologies, real-node
 experiments, literature verification.
+
+## 2026-11-22 (later) - Sybil redesign, references
+- v0's Sybils were dead ends: a link needs both endpoints' signatures, so they could attach only to attackers.
+  Redesigned. Sybils are reputation-layer identities, outcome reports are signed (Ed25519) and verified, and
+  attackers submit fabricated reports. `naive` vs `flow_bound` acceptance.
+- 3 new tests (24 total). Scenarios A, B and D reproduce the previous run exactly (checked by diff).
+- Results: `results/20261122T152805Z/` (360 runs). The old results directory was replaced.
+- New finding: lying physical attackers hurt single-path trust routing a lot even without Sybils.
+- References verified against primary sources (SCION book, RFC 8205/6480, Beta reputation, Marti et al.,
+  Douceur, OPT/ICING).

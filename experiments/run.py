@@ -6,7 +6,8 @@ Writes results/<UTC timestamp>/{raw.csv, environment.txt} and then calls analyze
 Scenarios (all values are SIMULATED, not measured on a real network):
   A malicious-fraction sweep  f in {0, .1, .2, .3}, all strategies, e2e attribution
   B attribution               f = .2, trust strategies, e2e vs per_hop
-  C sybil                     f = .1, 20 sybils, open vs controlled admission
+  C sybil                     f = .1, open admission, {0,10,50} Sybils, 5 fake reports/identity/epoch,
+                              naive vs flow-bound report acceptance
   D crash                     f = 0, 15 % honest nodes crash halfway (benign failures / partitions)
 """
 import csv
@@ -32,9 +33,11 @@ def grid(seeds):
         for st in ("trust", "trust_multi"):
             for att in ("e2e", "per_hop"):
                 yield "B_attribution", SimConfig(NetConfig(seed=s, malicious_frac=0.2), strategy=st, attribution=att)
-        for adm in ("controlled", "open"):
-            for st in ("shortest", "trust", "trust_multi"):
-                yield "C_sybil", SimConfig(NetConfig(seed=s, malicious_frac=0.1, sybils=20, admission=adm), strategy=st)
+        for sybils in (0, 10, 50):
+            for policy in ("naive", "flow_bound"):
+                for st in ("trust", "trust_multi"):
+                    yield "C_sybil", SimConfig(NetConfig(seed=s, malicious_frac=0.1, sybils=sybils, admission="open"),
+                                               strategy=st, fake_reports_per_epoch=5, report_policy=policy)
         for st in STRATEGIES:
             yield "D_crash", SimConfig(NetConfig(seed=s, crash_frac=0.15), strategy=st)
 

@@ -1,6 +1,6 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (`results/20261122T185532Z/`, 420 runs, 10 seeds). Sections marked
+*Working draft. All results are SIMULATED (`results/20261122T190222Z/`, 480 runs, 10 seeds). Sections marked
 **[TODO]** are not done. Related work is not yet verified; no novelty is claimed.*
 
 ## Abstract
@@ -61,6 +61,7 @@ malicious node and half badmouthing a random honest node.
 | 50 | flow_bound | 0.716 / 0.336 | 0.953 / 0.118 | 0.253 |
 | 0 | flow_bound_weighted | 0.584 / 0.469 | 0.918 / 0.211 | 0.222 |
 | 50 | flow_bound_weighted | 0.594 / 0.463 | 0.923 / 0.216 | 0.222 |
+| 0, 10 or 50 | local | 0.853 / 0.134 | 0.962 / 0.086 | 0.799 |
 
 (Mean of 10 seeds; CIs in summary.md, all half-widths at most 0.07.) Under `naive` acceptance, Sybils scale the
 attack: with 50 Sybils single-path delivery drops to 0.45. `flow_bound` makes Sybils irrelevant, with results
@@ -70,9 +71,12 @@ attackers' (0.87). Multipath routing is far more robust (0.95). **Negative resul
 flow binding and weights each report by the reporter's current trust. It lowers single-path delivery from 0.722 to
 0.584 (0 Sybils), and raises attackers' mean trust from 0.868 to 0.913. Colluders ballot-stuff each other, so their
 trust and report weight grow; badmouthing lowers honest nodes' trust and therefore the weight of honest reports. The
-defence amplifies the very reputation that is under attack. **[TODO]** Defences that do not depend on the attacked
-reputation, such as source-local trust (each source uses only its own observations) or consistency checks between
-independent reporters.
+defence amplifies the very reputation that is under attack. **Source-local trust works.** With policy `local` there is no report sharing: each source routes on a trust table
+built only from its own flows. Fabricated reports then never reach an honest table (0 accepted), and results are
+identical for 0, 10 and 50 Sybils. Single-path delivery rises to 0.853 +/- 0.021, against 0.722 for flow binding,
+and honest nodes' trust recovers (0.799 vs 0.256). The price is sparser evidence: 0.853 is below the 0.925 that
+shared trust reaches when nobody lies (scenario A, f = 0.1). **[TODO]** Hybrids that share evidence only between
+sources that verify each other's reports (consistency checks).
 
 ### D. Benign crashes (15 % of nodes crash at epoch 20)
 trust 0.724 +/- 0.079, shortest 0.730 +/- 0.023, trust_multi 0.919 +/- 0.032. Single-path trust gives no benefit,

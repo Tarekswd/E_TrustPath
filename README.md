@@ -28,7 +28,7 @@ malicious nodes, and what that costs in latency and overhead.
    (ballot-stuffing malicious nodes, badmouthing honest ones). Two acceptance policies are compared:
    `naive` (any registered signer), `flow_bound` (only physically attached nodes, i.e. reports must be bound to
    traffic the reporter actually sent) and `flow_bound_weighted` (additionally weighted by the reporter's trust;
-   this backfires, see the paper). Assumed honest: the registry.
+   this backfires, see the paper), and `local` (no report sharing: each source uses only its own observations). Assumed honest: the registry.
 
 ## Strategies compared
 `shortest` (advertised latency), `reliability` (self-reported reliability), `trust` (observed trust + latency),
@@ -42,7 +42,7 @@ drops 80 %), colluding fake links between attract_drop nodes (a wormhole both co
 ## Reproduce
 ```bash
 pip install -r requirements.txt           # networkx, cryptography (matplotlib optional, for plots)
-python3 -m unittest discover -s tests -v  # 26 tests
+python3 -m unittest discover -s tests -v  # 27 tests
 python3 experiments/run.py 10             # all scenarios, 10 seeds -> results/<timestamp>/
 ```
 

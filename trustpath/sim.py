@@ -35,14 +35,19 @@ class SimConfig:
     #   controlled nodes, not identities.
     # "flow_bound_weighted": flow_bound, and each report counts with weight = the reporter's current trust,
     #   so reporters whose own forwarding was observed to be bad lose influence.
+    # "local": no report sharing; each source routes on a trust table built only from its own flows.
     report_policy: str = "naive"
 
 
 def run(cfg: SimConfig) -> dict:
-    if cfg.report_policy not in ("naive", "flow_bound", "flow_bound_weighted"):
-        raise ValueError("report_policy must be 'naive', 'flow_bound' or 'flow_bound_weighted'")
+    if cfg.report_policy not in ("naive", "flow_bound", "flow_bound_weighted", "local"):
+        raise ValueError("report_policy must be 'naive', 'flow_bound', 'flow_bound_weighted' or 'local'")
     net = Network(cfg.net)
     trust = TrustTable(cfg.attribution)
+    local: dict[int, TrustTable] = {}  # report_policy == "local": per-source tables
+
+    def table_of(src: int) -> TrustTable:
+        return local.setdefault(src, TrustTable(cfg.attribution)) if cfg.report_policy == "local" else trust
     lie_rng = random.Random(cfg.net.seed * 7919 + 3)
     accepted_fake = rejected_fake = 0
 
@@ -51,6 +56,10 @@ def run(cfg: SimConfig) -> dict:
         ident = net.ids.get(r.reporter)
         if ident is None or not verify_report(net.registry, r, sign_report(ident, r)):
             return False
+        if cfg.report_policy == "local":
+            # Only the reporter's own table changes, so another source's routing never sees this report.
+            table_of(r.reporter).record(list(r.intermediates), r.delivered, None if r.blamed < 0 else r.blamed)
+            return not net.attacker_controlled(r.reporter)  # metric only: did it reach an honest table?
         if cfg.report_policy != "naive" and r.reporter not in net.phys:
             return False
         w = trust.trust(r.reporter) if cfg.report_policy == "flow_bound_weighted" else 1.0
@@ -72,7 +81,7 @@ def run(cfg: SimConfig) -> dict:
         measuring = epoch >= cfg.warmup
         for _ in range(cfg.flows_per_epoch):
             src, dst = flow_rng.sample(honest, 2)
-            paths = select(net.view, src, dst, cfg.strategy, trust, net.claimed_rel)
+            paths = select(net.view, src, dst, cfg.strategy, table_of(src), net.claimed_rel)
             if measuring:
                 sent += 1
             if not paths:
@@ -106,6 +115,12 @@ def run(cfg: SimConfig) -> dict:
                         rejected_fake += 1
 
     bad = net.malicious  # physical attackers; Sybils never forward, so there is nothing to detect
+    if local:  # metrics on the pooled evidence of honest sources' tables
+        for src, tb in local.items():
+            if not net.attacker_controlled(src):
+                for v in tb.alpha:
+                    trust.alpha[v] += tb.alpha[v] - 1.0
+                    trust.beta[v] += tb.beta[v] - 1.0
     observed = [v for v in trust.alpha if trust.observations(v) >= MIN_OBSERVATIONS]
     flagged = {v for v in observed if trust.trust(v) < DETECTION_THRESHOLD}
     adflag = {v for v, k in net.inconsistency.items() if k >= 2}

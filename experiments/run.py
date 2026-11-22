@@ -34,7 +34,7 @@ def grid(seeds):
             for att in ("e2e", "per_hop"):
                 yield "B_attribution", SimConfig(NetConfig(seed=s, malicious_frac=0.2), strategy=st, attribution=att)
         for sybils in (0, 10, 50):
-            for policy in ("naive", "flow_bound", "flow_bound_weighted"):
+            for policy in ("naive", "flow_bound", "flow_bound_weighted", "local"):
                 for st in ("trust", "trust_multi"):
                     yield "C_sybil", SimConfig(NetConfig(seed=s, malicious_frac=0.1, sybils=sybils, admission="open"),
                                                strategy=st, fake_reports_per_epoch=5, report_policy=policy)

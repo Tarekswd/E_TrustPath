@@ -122,6 +122,11 @@ class ReputationSybils(unittest.TestCase):
         r = self._run("flow_bound_weighted", 20)
         self.assertEqual(r["fake_reports_rejected"], 20 * 5 * 12)
 
+    def test_local_policy_ignores_attacker_reports(self):
+        r = self._run("local", 20)
+        self.assertEqual(r["fake_reports_accepted"], 0)  # fake reports only ever reach the liar's own table
+        self.assertGreater(r["delivery_ratio"], self._run("flow_bound", 20)["delivery_ratio"])
+
     def test_unknown_policy_rejected(self):
         with self.assertRaises(ValueError):
             run(SimConfig(NetConfig(seed=1), epochs=2, warmup=1, flows_per_epoch=2, report_policy="x"))

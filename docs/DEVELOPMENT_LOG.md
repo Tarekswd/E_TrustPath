@@ -42,3 +42,6 @@ experiments, literature verification.
 - Result (`results/20261122T185532Z/`, 420 runs): worse than plain flow binding (trust routing 0.584 vs 0.722 delivery)
   because colluding attackers inflate each other's trust. All previously existing configurations reproduce exactly
   (checked by diff). The old results directory was replaced.
+- Added policy `local` (per-source trust tables, no report sharing); 1 new test (27 total). Result
+  (`results/20261122T190222Z/`, 480 runs): immune to lying attackers and Sybils (delivery 0.853 vs 0.722 for
+  flow binding). Previous results directory replaced.

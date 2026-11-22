@@ -28,19 +28,20 @@ class TrustTable:
     def observations(self, v: int) -> float:
         return self.alpha[v] + self.beta[v] - 2.0
 
-    def record(self, intermediates: list[int], delivered: bool, dropped_at: int | None) -> None:
-        if not intermediates:
+    def record(self, intermediates: list[int], delivered: bool, dropped_at: int | None, weight: float = 1.0) -> None:
+        """`weight` scales the evidence (1.0 = one full observation)."""
+        if not intermediates or weight <= 0:
             return
         if delivered:
             for v in intermediates:
-                self.alpha[v] += 1.0
+                self.alpha[v] += weight
         elif self.attribution == "per_hop" and dropped_at is not None:
             for v in intermediates:
                 if v == dropped_at:
-                    self.beta[v] += 1.0
+                    self.beta[v] += weight
                     break
-                self.alpha[v] += 1.0  # forwarded correctly before the drop
+                self.alpha[v] += weight  # forwarded correctly before the drop
         else:
-            share = 1.0 / len(intermediates)
+            share = weight / len(intermediates)
             for v in intermediates:
                 self.beta[v] += share

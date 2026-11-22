@@ -55,6 +55,13 @@ class TrustMath(unittest.TestCase):
         t.record([1, 2], False, 2)
         self.assertAlmostEqual(t.beta[1], 1.5)  # e2e: blame shared
 
+    def test_weighted_evidence(self):
+        t = TrustTable("e2e")
+        t.record([1, 2], False, None, weight=0.5)
+        self.assertAlmostEqual(t.beta[1], 1.25)  # half an observation, shared over two nodes
+        t.record([1], True, None, weight=0.0)
+        self.assertEqual(t.alpha[1], 1.0)
+
     def test_per_hop_blames_only_dropper(self):
         t = TrustTable("per_hop")
         t.record([1, 2, 3], False, 2)
@@ -110,6 +117,10 @@ class ReputationSybils(unittest.TestCase):
         naive, bound = self._run("naive", 50, epochs=20), self._run("flow_bound", 50, epochs=20)
         self.assertLess(naive["honest_trust_mean"], bound["honest_trust_mean"])
         self.assertGreater(naive["malicious_trust_mean"], bound["malicious_trust_mean"])
+
+    def test_weighted_policy_runs_and_rejects_sybils(self):
+        r = self._run("flow_bound_weighted", 20)
+        self.assertEqual(r["fake_reports_rejected"], 20 * 5 * 12)
 
     def test_unknown_policy_rejected(self):
         with self.assertRaises(ValueError):

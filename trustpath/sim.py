@@ -33,12 +33,14 @@ class SimConfig:
     # "flow_bound": accept reports only from physically attached nodes (a report must be bound to a
     #   flow the reporter actually sent; Sybils have no attachment), so influence scales with
     #   controlled nodes, not identities.
+    # "flow_bound_weighted": flow_bound, and each report counts with weight = the reporter's current trust,
+    #   so reporters whose own forwarding was observed to be bad lose influence.
     report_policy: str = "naive"
 
 
 def run(cfg: SimConfig) -> dict:
-    if cfg.report_policy not in ("naive", "flow_bound"):
-        raise ValueError("report_policy must be 'naive' or 'flow_bound'")
+    if cfg.report_policy not in ("naive", "flow_bound", "flow_bound_weighted"):
+        raise ValueError("report_policy must be 'naive', 'flow_bound' or 'flow_bound_weighted'")
     net = Network(cfg.net)
     trust = TrustTable(cfg.attribution)
     lie_rng = random.Random(cfg.net.seed * 7919 + 3)
@@ -49,9 +51,10 @@ def run(cfg: SimConfig) -> dict:
         ident = net.ids.get(r.reporter)
         if ident is None or not verify_report(net.registry, r, sign_report(ident, r)):
             return False
-        if cfg.report_policy == "flow_bound" and r.reporter not in net.phys:
+        if cfg.report_policy != "naive" and r.reporter not in net.phys:
             return False
-        trust.record(list(r.intermediates), r.delivered, None if r.blamed < 0 else r.blamed)
+        w = trust.trust(r.reporter) if cfg.report_policy == "flow_bound_weighted" else 1.0
+        trust.record(list(r.intermediates), r.delivered, None if r.blamed < 0 else r.blamed, w)
         return True
 
     # Separate streams so that every strategy sees the same flows (common random numbers).

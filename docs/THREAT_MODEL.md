@@ -35,6 +35,7 @@ open, and forge advertisements in other nodes' names.
    lowers detection precision.
 4. **Lying physical attackers are not stopped.** Even with `flow_bound`, malicious nodes' own fabricated reports
    are accepted. In scenario C (10 % attackers, 5 fake reports each per epoch), trust-routing delivery fell from
-   0.925 to 0.722 and honest nodes' mean trust collapsed to 0.26. Report weighting or consistency checks are open work.
+   0.925 to 0.722 and honest nodes' mean trust collapsed to 0.26. Weighting reports by the reporter's trust was tested and makes it worse (delivery 0.584): colluders inflate each
+   other's trust and so their report weight. Source-local trust or reporter-consistency checks are open work.
 5. **Simulator keys are deterministic** (derived from the seed) for reproducibility. That is acceptable only
    because nothing here protects real traffic.

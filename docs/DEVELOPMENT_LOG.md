@@ -35,3 +35,10 @@ experiments, literature verification.
 - New finding: lying physical attackers hurt single-path trust routing a lot even without Sybils.
 - References verified against primary sources (SCION book, RFC 8205/6480, Beta reputation, Marti et al.,
   Douceur, OPT/ICING).
+
+## 2026-11-22 (later) - trust-weighted reports (negative result)
+- Added policy `flow_bound_weighted` (report weight = reporter's trust) and a `weight` parameter on
+  `TrustTable.record`; 2 new tests (26 total).
+- Result (`results/20261122T185532Z/`, 420 runs): worse than plain flow binding (trust routing 0.584 vs 0.722 delivery)
+  because colluding attackers inflate each other's trust. All previously existing configurations reproduce exactly
+  (checked by diff). The old results directory was replaced.

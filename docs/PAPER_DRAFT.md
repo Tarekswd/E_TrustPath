@@ -1,6 +1,6 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (`results/20261122T152805Z/`, 360 runs, 10 seeds). Sections marked
+*Working draft. All results are SIMULATED (`results/20261122T185532Z/`, 420 runs, 10 seeds). Sections marked
 **[TODO]** are not done. Related work is not yet verified; no novelty is claimed.*
 
 ## Abstract
@@ -59,13 +59,20 @@ malicious node and half badmouthing a random honest node.
 | 10 | flow_bound | 0.738 / 0.321 | 0.953 / 0.119 | 0.256 |
 | 50 | naive | 0.450 / 0.604 | 0.742 / 0.531 | 0.098 |
 | 50 | flow_bound | 0.716 / 0.336 | 0.953 / 0.118 | 0.253 |
+| 0 | flow_bound_weighted | 0.584 / 0.469 | 0.918 / 0.211 | 0.222 |
+| 50 | flow_bound_weighted | 0.594 / 0.463 | 0.923 / 0.216 | 0.222 |
 
 (Mean of 10 seeds; CIs in summary.md, all half-widths at most 0.07.) Under `naive` acceptance, Sybils scale the
 attack: with 50 Sybils single-path delivery drops to 0.45. `flow_bound` makes Sybils irrelevant, with results
 statistically indistinguishable from 0 Sybils. But even with no Sybils, lying physical attackers lower trust-routing
 delivery from 0.925 (scenario A, no lying) to 0.722, because badmouthing pushes honest nodes' trust (0.26) below the
-attackers' (0.87). Multipath routing is far more robust (0.95). **[TODO]** Report weighting and consistency
-checks against lying physical reporters.
+attackers' (0.87). Multipath routing is far more robust (0.95). **Negative result: weighting reports by the reporter's own trust backfires.** Policy `flow_bound_weighted` keeps
+flow binding and weights each report by the reporter's current trust. It lowers single-path delivery from 0.722 to
+0.584 (0 Sybils), and raises attackers' mean trust from 0.868 to 0.913. Colluders ballot-stuff each other, so their
+trust and report weight grow; badmouthing lowers honest nodes' trust and therefore the weight of honest reports. The
+defence amplifies the very reputation that is under attack. **[TODO]** Defences that do not depend on the attacked
+reputation, such as source-local trust (each source uses only its own observations) or consistency checks between
+independent reporters.
 
 ### D. Benign crashes (15 % of nodes crash at epoch 20)
 trust 0.724 +/- 0.079, shortest 0.730 +/- 0.023, trust_multi 0.919 +/- 0.032. Single-path trust gives no benefit,

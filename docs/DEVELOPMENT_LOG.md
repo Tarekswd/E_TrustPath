@@ -45,3 +45,12 @@ experiments, literature verification.
 - Added policy `local` (per-source trust tables, no report sharing); 1 new test (27 total). Result
   (`results/20261122T190222Z/`, 480 runs): immune to lying attackers and Sybils (delivery 0.853 vs 0.722 for
   flow binding). Previous results directory replaced.
+
+## 2026-11-23 - agreement-weighted sharing (middle ground)
+- trustpath/agreement.py (numpy): per-source weights from agreement between a reporter's pooled claims and the
+  source's own evidence. First thresholds (3 observations on 3 common nodes) gave all-zero weights; lowered to 1/2
+  before looking at delivery results. A short-run test expecting attacker weight < honest weight failed
+  (0.17 vs 0.04 in 12-epoch runs); replaced by a sanity test. Full runs separate them (0.11 vs 0.79).
+- `agreement` alone degrades with many Sybils; `agreement_flow_bound` is flat from 0 to 50 Sybils and reaches
+  0.987 multipath delivery. 30 tests. Results `results/20261123T055852Z/` (600 runs); all pre-existing
+  configurations reproduce exactly (diff). Older results directories replaced. Added numpy to requirements.

@@ -1,6 +1,6 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (`results/20261122T190222Z/`, 480 runs, 10 seeds). Sections marked
+*Working draft. All results are SIMULATED (`results/20261123T055852Z/`, 600 runs, 10 seeds). Sections marked
 **[TODO]** are not done. Related work is not yet verified; no novelty is claimed.*
 
 ## Abstract
@@ -62,6 +62,10 @@ malicious node and half badmouthing a random honest node.
 | 0 | flow_bound_weighted | 0.584 / 0.469 | 0.918 / 0.211 | 0.222 |
 | 50 | flow_bound_weighted | 0.594 / 0.463 | 0.923 / 0.216 | 0.222 |
 | 0, 10 or 50 | local | 0.853 / 0.134 | 0.962 / 0.086 | 0.799 |
+| 0 | agreement | 0.866 / 0.125 | 0.987 / 0.014 | 0.611 |
+| 50 | agreement | 0.618 / 0.444 | 0.921 / 0.210 | 0.333 |
+| 0 | agreement_flow_bound | 0.866 / 0.125 | 0.987 / 0.014 | 0.611 |
+| 50 | agreement_flow_bound | 0.865 / 0.130 | 0.987 / 0.017 | 0.611 |
 
 (Mean of 10 seeds; CIs in summary.md, all half-widths at most 0.07.) Under `naive` acceptance, Sybils scale the
 attack: with 50 Sybils single-path delivery drops to 0.45. `flow_bound` makes Sybils irrelevant, with results
@@ -75,8 +79,18 @@ defence amplifies the very reputation that is under attack. **Source-local trust
 built only from its own flows. Fabricated reports then never reach an honest table (0 accepted), and results are
 identical for 0, 10 and 50 Sybils. Single-path delivery rises to 0.853 +/- 0.021, against 0.722 for flow binding,
 and honest nodes' trust recovers (0.799 vs 0.256). The price is sparser evidence: 0.853 is below the 0.925 that
-shared trust reaches when nobody lies (scenario A, f = 0.1). **[TODO]** Hybrids that share evidence only between
-sources that verify each other's reports (consistency checks).
+shared trust reaches when nobody lies (scenario A, f = 0.1). **Middle ground: agreement-weighted sharing.** Policy `agreement` keeps each source's own evidence and adds every
+reporter's pooled reports, weighted per source by w = max(0, 1 - 2 * mean |own trust - reporter's trust|) over
+commonly observed nodes (trustpath/agreement.py). In full runs it separates reporters well: mean weight 0.79 for
+honest reporters vs 0.11 for attackers (0 Sybils). It beats source-local trust for multipath routing (0.987 +/-
+0.005 vs 0.962 +/- 0.010), but many Sybils still add up: each keeps about 0.15 weight, and with 50 Sybils single-path
+delivery falls to 0.618. Adding flow binding (`agreement_flow_bound`, which drops reports from identities without
+physical attachment) removes that: results are flat from 0 to 50 Sybils (single path 0.865-0.866, multipath
+0.987-0.989), and multipath matches shared trust when nobody lies (0.989, scenario A). Single-path delivery is
+only marginally above local trust (0.866 vs 0.853, overlapping CIs). Caveat: attackers' mean trust (0.71) stays
+above honest nodes' (0.61); routing still avoids them, but trust scores alone are not a reliable detector here.
+Thresholds MIN_OBS = 1 and MIN_COMMON = 2 were lowered from 3/3 once, before any delivery result, because at 3/3 no
+pair of sources ever shared enough evidence (all weights 0). They were not tuned on delivery results.
 
 ### D. Benign crashes (15 % of nodes crash at epoch 20)
 trust 0.724 +/- 0.079, shortest 0.730 +/- 0.023, trust_multi 0.919 +/- 0.032. Single-path trust gives no benefit,

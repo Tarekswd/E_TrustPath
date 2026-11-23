@@ -37,6 +37,9 @@ open, and forge advertisements in other nodes' names.
    are accepted. In scenario C (10 % attackers, 5 fake reports each per epoch), trust-routing delivery fell from
    0.925 to 0.722 and honest nodes' mean trust collapsed to 0.26. Weighting reports by the reporter's trust was tested and makes it worse (delivery 0.584): colluders inflate each
    other's trust and so their report weight. Source-local trust (policy `local`, no report sharing) is immune to fabricated reports and Sybils in the simulation
-   (delivery 0.853), at the cost of slower learning than honest shared trust (0.925).
+   (delivery 0.853), at the cost of slower learning than honest shared trust (0.925). Agreement-weighted sharing plus flow binding
+   (`agreement_flow_bound`) keeps that immunity in the simulation and recovers multipath delivery (0.987); it assumes
+   liars contradict what honest sources observe, and an attacker that lies only about nodes no honest source
+   observes is not penalised.
 5. **Simulator keys are deterministic** (derived from the seed) for reproducibility. That is acceptable only
    because nothing here protects real traffic.

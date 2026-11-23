@@ -7,7 +7,9 @@ import statistics
 from dataclasses import asdict, dataclass
 
 import networkx as nx
+import numpy as np
 
+from .agreement import AgreementTrust
 from .identity import OutcomeReport, sign_report, verify_report
 from .network import Network, NetConfig
 from .routing import select
@@ -36,17 +38,27 @@ class SimConfig:
     # "flow_bound_weighted": flow_bound, and each report counts with weight = the reporter's current trust,
     #   so reporters whose own forwarding was observed to be bad lose influence.
     # "local": no report sharing; each source routes on a trust table built only from its own flows.
+    # "agreement": own evidence plus every reporter's pooled reports, weighted per source by how well the
+    #   reporter's claims agree with the source's own observations (see agreement.py).
+    # "agreement_flow_bound": agreement, plus flow binding (reports only from physically attached nodes).
     report_policy: str = "naive"
 
 
 def run(cfg: SimConfig) -> dict:
-    if cfg.report_policy not in ("naive", "flow_bound", "flow_bound_weighted", "local"):
-        raise ValueError("report_policy must be 'naive', 'flow_bound', 'flow_bound_weighted' or 'local'")
+    policies = ("naive", "flow_bound", "flow_bound_weighted", "local", "agreement", "agreement_flow_bound")
+    if cfg.report_policy not in policies:
+        raise ValueError(f"report_policy must be one of {policies}")
+    if cfg.report_policy.startswith("agreement") and cfg.attribution != "e2e":
+        raise ValueError("agreement policy supports e2e attribution only")
     net = Network(cfg.net)
     trust = TrustTable(cfg.attribution)
     local: dict[int, TrustTable] = {}  # report_policy == "local": per-source tables
 
-    def table_of(src: int) -> TrustTable:
+    agree = AgreementTrust(cfg.net.n, max(net.ids) + 1) if cfg.report_policy.startswith("agreement") else None
+
+    def table_of(src: int):
+        if agree is not None:
+            return agree.view(src)
         return local.setdefault(src, TrustTable(cfg.attribution)) if cfg.report_policy == "local" else trust
     lie_rng = random.Random(cfg.net.seed * 7919 + 3)
     accepted_fake = rejected_fake = 0
@@ -56,6 +68,14 @@ def run(cfg: SimConfig) -> dict:
         ident = net.ids.get(r.reporter)
         if ident is None or not verify_report(net.registry, r, sign_report(ident, r)):
             return False
+        if agree is not None:
+            if cfg.report_policy == "agreement_flow_bound" and r.reporter not in net.phys:
+                return False  # Sybils: no physical attachment, no reports
+            # A source's own flows count fully for itself; every report (fabricated ones too) enters the pool.
+            if r.reporter < cfg.net.n and not net.attacker_controlled(r.reporter) and r.epoch >= 0:
+                agree.record_own(r.reporter, list(r.intermediates), r.delivered)
+            agree.record_report(r.reporter, list(r.intermediates), r.delivered)
+            return True
         if cfg.report_policy == "local":
             # Only the reporter's own table changes, so another source's routing never sees this report.
             table_of(r.reporter).record(list(r.intermediates), r.delivered, None if r.blamed < 0 else r.blamed)
@@ -76,6 +96,8 @@ def run(cfg: SimConfig) -> dict:
     sent = delivered = exposed = unreachable = copies = 0
     stretch = []
     for epoch in range(cfg.epochs):
+        if agree is not None:
+            agree.refresh()
         if epoch == cfg.epochs // 2:
             crashed = set(net.to_crash)
         measuring = epoch >= cfg.warmup
@@ -115,6 +137,16 @@ def run(cfg: SimConfig) -> dict:
                         rejected_fake += 1
 
     bad = net.malicious  # physical attackers; Sybils never forward, so there is nothing to detect
+    w_att = w_hon = float("nan")
+    if agree is not None:  # metrics on the combined view, averaged over honest sources
+        agree.refresh()
+        hs = [s for s in honest if s < cfg.net.n]
+        liars = [v for v in sorted(net.malicious | net.sybil_ids)]
+        w_att = float(agree.weights[np.ix_(hs, liars)].mean()) if liars else float("nan")
+        w_hon = float(agree.weights[np.ix_(hs, hs)].sum() / max(len(hs) * (len(hs) - 1), 1))
+        for v in range(cfg.net.n):
+            trust.alpha[v] = float(np.mean([agree.view(s).alpha[v] for s in hs]))
+            trust.beta[v] = float(np.mean([agree.view(s).beta[v] for s in hs]))
     if local:  # metrics on the pooled evidence of honest sources' tables
         for src, tb in local.items():
             if not net.attacker_controlled(src):
@@ -142,5 +174,7 @@ def run(cfg: SimConfig) -> dict:
         "fake_reports_accepted": accepted_fake,
         "fake_reports_rejected": rejected_fake,
         "honest_trust_mean": statistics.fmean(trust.trust(v) for v in honest),
+        "agree_weight_to_attackers": w_att,
+        "agree_weight_to_honest": w_hon,
         "malicious_trust_mean": statistics.fmean(trust.trust(v) for v in net.malicious) if net.malicious else float("nan"),
     }

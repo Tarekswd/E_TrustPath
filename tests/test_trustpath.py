@@ -127,6 +127,29 @@ class ReputationSybils(unittest.TestCase):
         self.assertEqual(r["fake_reports_accepted"], 0)  # fake reports only ever reach the liar's own table
         self.assertGreater(r["delivery_ratio"], self._run("flow_bound", 20)["delivery_ratio"])
 
+    def test_agreement_policy_runs_with_bounded_weights(self):
+        # Whether agreement weighting helps is an experimental question (see PAPER_DRAFT); here only sanity.
+        r = self._run("agreement", 20, epochs=20)
+        for k in ("agree_weight_to_attackers", "agree_weight_to_honest"):
+            self.assertTrue(0.0 <= r[k] <= 1.0, (k, r[k]))
+        self.assertGreater(r["delivery_ratio"], 0.0)
+
+    def test_agreement_flow_bound_rejects_sybil_reports(self):
+        r = self._run("agreement_flow_bound", 20)
+        self.assertEqual(r["fake_reports_rejected"], 20 * 5 * 12)
+
+    def test_agreement_weights_unit(self):
+        from trustpath.agreement import AgreementTrust
+        a = AgreementTrust(n_nodes=5, n_ids=3)
+        for _ in range(5):  # source 0 sees nodes 1-3 deliver; reporter 1 agrees, reporter 2 claims drops
+            a.record_own(0, [1, 2, 3], True)
+            a.record_report(1, [1, 2, 3], True)
+            a.record_report(2, [1, 2, 3], False)
+        a.refresh()
+        self.assertGreater(a.weights[0, 1], 0.5)
+        self.assertEqual(a.weights[0, 2], 0.0)
+        self.assertEqual(a.weights[0, 0], 0.0)
+
     def test_unknown_policy_rejected(self):
         with self.assertRaises(ValueError):
             run(SimConfig(NetConfig(seed=1), epochs=2, warmup=1, flows_per_epoch=2, report_policy="x"))

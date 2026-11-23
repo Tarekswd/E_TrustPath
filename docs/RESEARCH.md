@@ -34,3 +34,11 @@
 
 ## Results
 See the latest `results/<timestamp>/summary.md`. A summary is in docs/PAPER_DRAFT.md.
+
+## Novelty check of agreement-weighted sharing (2026-11-23)
+Not novel as a mechanism: S. Buchegger and J.-Y. Le Boudec, *A Robust Reputation System for P2P and Mobile Ad-hoc
+Networks* (P2PEcon 2004) already keep a trust rating per reporter and accept second-hand information only if it
+passes a "deviation test" against first-hand ratings. Our `agreement` policy is a variant of that idea. What
+remains possibly distinctive is narrow: measuring how such filtering interacts with authenticated topologies,
+flow-bound reporting and Sybil identities in path selection (scenario C). This still needs a targeted literature
+check (e.g. on reputation in path-aware or SCION-like routing) before any claim.

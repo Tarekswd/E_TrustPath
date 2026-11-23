@@ -79,7 +79,7 @@ defence amplifies the very reputation that is under attack. **Source-local trust
 built only from its own flows. Fabricated reports then never reach an honest table (0 accepted), and results are
 identical for 0, 10 and 50 Sybils. Single-path delivery rises to 0.853 +/- 0.021, against 0.722 for flow binding,
 and honest nodes' trust recovers (0.799 vs 0.256). The price is sparser evidence: 0.853 is below the 0.925 that
-shared trust reaches when nobody lies (scenario A, f = 0.1). **Middle ground: agreement-weighted sharing.** Policy `agreement` keeps each source's own evidence and adds every
+shared trust reaches when nobody lies (scenario A, f = 0.1). **Middle ground: agreement-weighted sharing (a variant of Buchegger and Le Boudec's 2004 deviation test, not a new mechanism).** Policy `agreement` keeps each source's own evidence and adds every
 reporter's pooled reports, weighted per source by w = max(0, 1 - 2 * mean |own trust - reporter's trust|) over
 commonly observed nodes (trustpath/agreement.py). In full runs it separates reporters well: mean weight 0.79 for
 honest reporters vs 0.11 for attackers (0 Sybils). It beats source-local trust for multipath routing (0.987 +/-

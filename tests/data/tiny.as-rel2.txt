@@ -1,0 +1,15 @@
+# tiny hand-made AS relationships fixture (serial-2 format) for tests
+# input clique: 1 2
+1|2|0|bgp
+1|10|-1|bgp
+1|11|-1|bgp
+2|11|-1|bgp
+2|12|-1|bgp
+10|11|0|bgp
+10|100|-1|bgp
+10|101|-1|bgp
+11|102|-1|bgp
+11|103|-1|bgp
+12|104|-1|bgp
+12|105|-1|bgp
+12|100|-1|bgp

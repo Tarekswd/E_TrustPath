@@ -45,3 +45,11 @@ class TrustTable:
             share = weight / len(intermediates)
             for v in intermediates:
                 self.beta[v] += share
+
+    def record_split(self, forwarded: list[int], suspects: list[int]) -> None:
+        """Failure with partial evidence (assim.py receipts): credit nodes proven to have forwarded and spread
+        one unit of blame over the suspects."""
+        for v in forwarded:
+            self.alpha[v] += 1.0
+        for v in suspects:
+            self.beta[v] += 1.0 / len(suspects)

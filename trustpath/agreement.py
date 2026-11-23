@@ -62,7 +62,10 @@ class AgreementTrust:
         ms = (own_obs >= MIN_OBS).astype(float)  # (S, V)
         mr = (rep_obs >= MIN_OBS).astype(float)  # (R, V)
         common = ms @ mr.T  # (S, R)
-        diff = np.einsum("sv,rv,srv->sr", ms, mr, np.abs(own_t[:, None, :] - rep_t[None, :, :]))
+        if ms.shape[0] * mr.shape[0] * ms.shape[1] <= 50_000_000:
+            diff = np.einsum("sv,rv,srv->sr", ms, mr, np.abs(own_t[:, None, :] - rep_t[None, :, :]))
+        else:  # AS-scale (assim.py): same quantity one source at a time, avoids an S x R x V temporary
+            diff = np.stack([(mr * ms[s] * np.abs(own_t[s] - rep_t)).sum(axis=1) for s in range(ms.shape[0])])
         with np.errstate(invalid="ignore", divide="ignore"):
             w = np.clip(1.0 - 2.0 * diff / common, 0.0, 1.0)
         w[common < MIN_COMMON] = 0.0

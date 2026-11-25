@@ -79,4 +79,6 @@ Notes on this table:
 - Simulation only. The link-loss model is uniform 0.1-1% per AS link.
 - One CAIDA snapshot, subsampled.
 - Localisation uses only adopters' evidence.
-- Zhang et al. (CoNEXT 2008) still needs to be read against H-T3 (NOVELTY_GATE.md).
+- Zhang et al. (CoNEXT 2008) read 2026-11-25: full deployment on a single path, no partial deployment or AS
+  topology, so H-T3 is not covered (NOVELTY_GATE.md). Receipts here are abstract; framing via ack-dropping is not
+  modelled.

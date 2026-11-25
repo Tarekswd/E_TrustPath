@@ -23,7 +23,20 @@ Date: 2026-11-23. Verdict: **PASS with narrowing (preliminary)**.
 No evaluation was found of partial deployment of reputation- or observation-based path selection on a path-aware AS
 topology. H-T3 (partial receipts) is the riskiest part: it depends on Zhang et al. 2008.
 
+## Zhang, Jain, Perrig, CoNEXT 2008 (read in full 2026-11-25, netsec.ethz.ch/publications/papers/xin_conext08.pdf)
+- Setting: one source-destination path. "We assume that the source shares a pairwise symmetric key with each
+  intermediate node on the path", so every node on the path runs the protocol (full deployment).
+- Mechanism: secure acks with onion reports. PAAI-1: "every intermediate node sends an ack for only a selected
+  fraction of data packets". PAAI-2: "only one selected intermediate node sends an ack for each data packet". The
+  subset is a per-packet secret sample among nodes that all participate, not a fixed set of deploying nodes.
+- Evaluation: simulation on a single example path (Figure 1), detection time and storage per protocol. No AS
+  topology, no partial or incremental deployment (the words do not appear), no path selection or reputation.
+- Consequence for H-T3: not covered. H-T3 asks which *fixed* fraction of ASes must deploy receipts, placed by
+  degree vs at random, on a CAIDA topology, feeding end-host path selection. PAAI-2 is the closest idea (fewer
+  reporting nodes per packet) and must be cited and contrasted; its onion reports are what a deployed receipt
+  would use against ack-dropping framing, which our simulator abstracts away.
+
 ## Still to do
-- Read Zhang et al. 2008 and Chiu et al. 2021.
+- Read Chiu et al. 2021.
 - Check Stefan Schmid's "End-Host Path Selection" work (seen on his homepage) and SCION path-selection papers from
   ETH NetSec, 2020-2026.

@@ -5,6 +5,8 @@
 grid:
   T1  adoption curve: adopt_frac x policy x attacker placement x malicious fraction, attacker "always"
   T2  attacker strategies: adopt_frac x attacker strategy x policy, top placement, 5 % malicious
+  T3  partial receipts: receipt_frac x receipt placement x attacker x drop rate, full adoption, local policy
+  AUC control runs explaining the adopter_aware localisation AUC (attackers that never drop)
   smoke  a few runs for CI (needs the CAIDA snapshot)
 Downloads the CAIDA AS-relationships snapshot (serial-2, 2026-11-01) into data/ if missing. Use is subject to
 the CAIDA Acceptable Use Agreement: https://www.caida.org/about/legal/aua/
@@ -40,6 +42,28 @@ def grid(name, seeds):
                 for att in ("always", "on_off", "adopter_aware", "conflicting"):
                     for policy in ("local", "shared", "agreement"):
                         yield ASConfig(seed=s, adopt_frac=f, attacker=att, policy=policy, mal_placement="top")
+        elif name == "T3":
+            # H-T3 as pre-registered (g x placement, f = 1). attacker/drop beyond "always, 0.8" added after T1/T2
+            # showed e2e localisation already saturates there (AUC >= 0.99), which would make H-T3 trivially true.
+            # Placebo (drop=0) and random attacker placement added after the AUC control grid showed that, with
+            # attackers on the top-degree ASes, localisation AUC is shifted by position alone (both scores).
+            for g in (0.0, 0.01, 0.05, 0.1, 0.25, 1.0):
+                for rp in ("top", "random"):
+                    for att in ("always", "on_off", "conflicting"):
+                        for drop in (0.8, 0.2):
+                            yield ASConfig(seed=s, adopt_frac=1.0, attacker=att, drop=drop, mal_placement="top",
+                                           receipt_frac=g, receipt_placement=rp)
+                        yield ASConfig(seed=s, adopt_frac=1.0, attacker=att, drop=0.2, mal_placement="random",
+                                       receipt_frac=g, receipt_placement=rp)
+                    for place in ("top", "random"):
+                        yield ASConfig(seed=s, adopt_frac=1.0, attacker="always", drop=0.0, mal_placement=place,
+                                       receipt_frac=g, receipt_placement=rp)
+        elif name == "AUC":
+            # control for the adopter_aware AUC < 0.5 in T2: same placement with attackers that never drop (drop=0)
+            for att, drop, place in (("adopter_aware", 0.8, "top"), ("adopter_aware", 0.0, "top"), ("always", 0.0, "top"),
+                                     ("adopter_aware", 0.8, "random"), ("always", 0.0, "random")):
+                for f in (0.25, 0.5):
+                    yield ASConfig(seed=s, adopt_frac=f, attacker=att, drop=drop, mal_placement=place)
         elif name == "smoke":
             yield ASConfig(seed=s, adopt_frac=0.5, epochs=6, warmup=2, flows_per_epoch=100)
         else:

@@ -1,0 +1,8 @@
+date_utc: 2026-11-25T10:45:03Z
+grid: AUC
+runs: 100 (10 seeds), wall time of last session 116 s
+git: 210156ab21e319fdd94f1e4838513e8a422a1eb9
+topology: CAIDA AS relationships serial-2 20261101.as-rel2.txt.bz2
+python: 3.12.3 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)
+networkx: 3.7, numpy: 2.5.5
+all metrics are simulated

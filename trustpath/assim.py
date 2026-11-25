@@ -218,6 +218,14 @@ def run(cfg: ASConfig, data: str | Path = DATA) -> dict:
     bad = [tr[a] for a in seen if a in malicious]
     good = [tr[a] for a in seen if a not in malicious]
     auc = (sum((h > m) + 0.5 * (h == m) for h in good for m in bad) / (len(good) * len(bad))) if bad and good else float("nan")
+    # Same ranking by the observed failure share, without the Beta(1,1) prior: the posterior mean above shrinks
+    # rarely observed ASes towards 0.5, so it ranks heavily used (high-degree) ASes as more trustworthy even when
+    # every AS behaves the same (AUC control grid: ~0.2 with non-dropping "attackers" at top placement).
+    fail = {a: (beta[a] - 1.0) / (alpha[a] + beta[a] - 2.0) if alpha[a] + beta[a] > 2.0 else 0.0 for a in seen}
+    fbad = [fail[a] for a in seen if a in malicious]
+    fgood = [fail[a] for a in seen if a not in malicious]
+    auc_mle = (sum((m > h) + 0.5 * (m == h) for h in fgood for m in fbad) / (len(fgood) * len(fbad))
+               if fbad and fgood else float("nan"))
 
     def ratio(i, grp):
         return stats[grp][i] / stats[grp][0] if stats[grp][0] else float("nan")
@@ -238,5 +246,6 @@ def run(cfg: ASConfig, data: str | Path = DATA) -> dict:
         "copies_per_flow": copies / sent if sent else float("nan"),
         "unreachable": unreachable,
         "loc_auc": auc,
+        "loc_auc_mle": auc_mle,
         "loc_observed_malicious": len(bad),
     }

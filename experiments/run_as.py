@@ -20,6 +20,8 @@ from multiprocessing import Pool
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dataclasses import asdict  # noqa: E402
+
 from trustpath.assim import DATA, ASConfig, run  # noqa: E402
 
 URL = "https://publicdata.caida.org/datasets/as-relationships/serial-2/" + DATA.name
@@ -50,26 +52,40 @@ def main():
     if not DATA.exists():
         DATA.parent.mkdir(exist_ok=True)
         urllib.request.urlretrieve(URL, DATA)
-    out = Path(sys.argv[3] if len(sys.argv) > 3 else "results") / f"as-{name}-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}"
-    out.mkdir(parents=True)
-    items = list(grid(name, seeds))
+    # Fixed directory per grid and seed count: rows are appended as runs finish, and a rerun after a crash
+    # skips configurations already in raw.csv (resume).
+    out = Path(sys.argv[3] if len(sys.argv) > 3 else "results") / f"as-{name}-{len(seeds)}seeds"
+    out.mkdir(parents=True, exist_ok=True)
+    raw = out / "raw.csv"
+    fields = list(asdict(ASConfig()))
+    done = set()
+    if raw.exists():
+        done = {tuple(r[k] for k in fields) for r in csv.DictReader(open(raw, newline=""))}
+    items = [c for c in grid(name, seeds) if tuple(str(v) for v in asdict(c).values()) not in done]
     # agreement runs are ~20x slower; start them first so the pool does not idle at the end
     items.sort(key=lambda c: c.policy != "agreement")
+    print(f"{len(done)} runs already done, {len(items)} to go", flush=True)
     t0 = time.time()
-    # each worker caches the full CAIDA graph (~250 MB); 8 workers fit in the 7 GB WSL VM
-    with Pool(max(1, min((os.cpu_count() or 2) - 1, 8))) as pool:
-        rows = pool.map(run, items, chunksize=1)
-    with open(out / "raw.csv", "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
-        w.writeheader()
-        w.writerows(rows)
+    # each worker caches the full CAIDA graph (~250 MB); 6 workers keep WSL memory (and the host pagefile) small
+    with Pool(max(1, min((os.cpu_count() or 2) - 1, 6))) as pool, open(raw, "a", newline="") as fh:
+        w = None
+        for k, row in enumerate(pool.imap_unordered(run, items, chunksize=1), 1):
+            if w is None:
+                w = csv.DictWriter(fh, fieldnames=list(row))
+                if not done:
+                    w.writeheader()
+            w.writerow(row)
+            fh.flush()
+            if k % 100 == 0:
+                print(f"{k}/{len(items)} {time.time() - t0:.0f} s", flush=True)
+    rows = list(csv.DictReader(open(raw, newline="")))
     git = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     import networkx
     import numpy
 
     (out / "environment.txt").write_text(
         f"date_utc: {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}\ngrid: {name}\n"
-        f"runs: {len(rows)} ({len(seeds)} seeds), wall time {time.time() - t0:.0f} s\ngit: {git}\n"
+        f"runs: {len(rows)} ({len(seeds)} seeds), wall time of last session {time.time() - t0:.0f} s\ngit: {git}\n"
         f"topology: CAIDA AS relationships serial-2 {DATA.name}\n"
         f"python: {platform.python_version()} ({platform.platform()})\n"
         f"networkx: {networkx.__version__}, numpy: {numpy.__version__}\n"

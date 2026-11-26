@@ -82,3 +82,6 @@ Notes on this table:
 - Zhang et al. (CoNEXT 2008) read 2026-11-25: full deployment on a single path, no partial deployment or AS
   topology, so H-T3 is not covered (NOVELTY_GATE.md). Receipts here are abstract; framing via ack-dropping is not
   modelled.
+- Chiu and He (IEEE TNSE 2021) checked 2026-11-26: budgeted measurement-path selection against a link-manipulating
+  attacker, fixed shortest-path routing, PoP/router-level topologies; no end-host path selection or AS topology.
+  Related to H-T2/H-T4 (discriminating attacker) and H-T3 (budgeted placement); does not cover H-T3.

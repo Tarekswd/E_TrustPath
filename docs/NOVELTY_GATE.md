@@ -36,7 +36,23 @@ topology. H-T3 (partial receipts) is the riskiest part: it depends on Zhang et a
   reporting nodes per packet) and must be cited and contrasted; its onion reports are what a deployed receipt
   would use against ack-dropping framing, which our simulator abstracts away.
 
+## Chiu and He, IEEE TNSE 2021 (checked 2026-11-26 via a question-answering pass over par.nsf.gov/servlets/purl/10219942, 14 pages; not read line by line)
+Full title: *Stealthy DGoS Attack Against Network Tomography: The Role of Active Measurements*,
+doi:10.1109/TNSE.2021.3070990 (the INFOCOM 2020 / ToN 2021 *DeGrading of Service Under the Watch of Network
+Tomography* is the companion paper; not checked).
+- Threat model: "an attacker inside the network" that controls "a subset L_m of links" and manipulates "different
+  packets traversing the same link differently", "maximally degrading the performance of targeted paths without
+  exposing the manipulated links to network tomography". Same family as our adopter-aware/discriminating attacker.
+- Defender: chooses "the best set of measurement paths under a budget constraint" (Stackelberg game, MIQP plus a
+  greedy algorithm). This is budgeted monitor placement, the closest analogue to H-T3's "which fraction of ASes
+  deploy receipts, by degree vs at random".
+- Not covered: routing is fixed shortest paths; no end-host path selection, reputation or trust; inference of link
+  metrics, not avoidance. Topologies are PoP-level (Bics, BTN, Colt, Cogent) and router-level (AS 20965, AS 8717),
+  not an AS-level Internet topology.
+- Consequence: H-T2/H-T4 must cite it as the tomography analogue of a discriminating attacker; H-T3 must cite its
+  budgeted path selection as related placement work. Verdict for H-T3 unchanged: the combination (fixed partial
+  deployment of receipts on a CAIDA AS topology feeding end-host path selection) is not covered.
+
 ## Still to do
-- Read Chiu et al. 2021.
 - Check Stefan Schmid's "End-Host Path Selection" work (seen on his homepage) and SCION path-selection papers from
   ETH NetSec, 2020-2026.

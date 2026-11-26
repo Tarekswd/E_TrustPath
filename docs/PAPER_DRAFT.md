@@ -1,7 +1,8 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (`results/20261123T055852Z/`, 600 runs, 10 seeds). Sections marked
-**[TODO]** are not done. Related work is not yet verified; no novelty is claimed.*
+*Working draft. All results are SIMULATED (sections 1-2: `results/20261123T055852Z/`, 600 runs, 10 seeds;
+section 3: CAIDA AS-level runs, 30 seeds, `results/AS_FINDINGS.md`). Sections marked
+**[TODO]** are not done. Related work is partly checked (docs/NOVELTY_GATE.md); no novelty is claimed yet.*
 
 ## Abstract
 In a 100-node simulated network with signed, bidirectionally confirmed link advertisements, we compare four path
@@ -12,7 +13,10 @@ metrics falls to 0.54-0.24. Trust-aware single-path routing keeps delivery at 0.
 paths through attackers from 0.47-0.79 to 0.02-0.23. The cost is about 10 % latency stretch. Two disjoint trust
 paths reach 0.99-0.95 delivery at about twice the packet copies. We also find three limits: identity-level
 defences make the modelled Sybils irrelevant; trust without forgetting does not help against benign crashes; and
-trust routing starves its own detector of evidence.
+trust routing starves its own detector of evidence. On a CAIDA-derived AS topology (about 1,300 ASes, valley-free
+paths), partial deployment still pays: adopters gain +0.03 to +0.05 delivery when attackers sit at top-degree ASes,
+and per-hop receipts at the top 5 % of ASes by degree recover 0.92-1.00 of the full-deployment localisation gain
+(random placement: 0.03-0.24).
 
 ## 1. Model
 See README (trust model) and docs/THREAT_MODEL.md. 100-node random geometric graphs, 40 epochs x 40 flows,
@@ -102,10 +106,30 @@ The trust threshold (< 0.35 after at least 5 observations) has recall of only 0.
 and at most 0.09 under trust routing. Trust routing avoids suspected nodes, so they stop generating evidence.
 This is a known exploration-vs-exploitation tension; quantifying it is **[TODO]**.
 
-## 3. Limitations
-Simulated only; one topology family; static links; honest outcome reporters; no recommendation sharing; no trust
-decay; stretch metric affected by fake links; 10 seeds.
+## 3. AS-level partial deployment (CAIDA, 30 seeds; details and deviations in results/AS_FINDINGS.md)
+CAIDA AS relationships 2026-11-01, subsampled to about 1,293 ASes (300 transit + 1,000 stubs), SCION-like valley-free
+paths. Only a fraction f of ASes adopt trust-aware selection; hypotheses H-T1 to H-T4 were pre-registered
+(NOVELTY_PLAN.md section 3.3).
 
-## 4. Next experiments
+| Hypothesis | Result |
+|---|---|
+| H-T1 adoption curve | Partly supported. Adopters gain +0.03 to +0.05 delivery over non-adopters with top-degree attackers, flat in f; about 0 with random attackers. Agreement-filtered sharing adds +0.010 to +0.026 and is never worse than local trust. |
+| H-T2 adopter-aware attacker | Supported. Non-adopters see no change (0.000 +/- 0.002); adopters get 0.98 delivery vs 0.81 overall at f = 0.1, and cannot distinguish this attacker from one that never drops. |
+| H-T3 partial receipts | Supported, estimator-dependent. Receipts at the top 5 % / 10 % of ASes by degree recover 0.92-1.00 / 0.94-0.97 of the full-deployment localisation gain (top-degree attackers) and 0.54-0.66 / 0.72-0.79 (random attackers); random receipt placement recovers 0.03-0.42. A prior-free failure share from end-to-end evidence alone nearly matches full receipts, so receipts add only +0.01 to +0.04 over it. |
+| H-T4 conflicting attacker | Supported. Agreement filtering falls back to local-trust performance (0.000 +/- 0.002), never below it. |
+
+Measurement artefact: the posterior-mean localisation score is biased by attacker position (AUC 0.18-0.24 for
+top-degree attackers that never drop), so localisation is reported as lift over a same-placement placebo.
+
+Closest prior work: Zhang et al. (CoNEXT 2008, PAAI-1/2) assume every node on one path participates; Chiu and He
+(IEEE TNSE 2021) choose measurement paths under a budget against a link-manipulating attacker, but with fixed
+shortest-path routing, no end-host path selection and no AS-level topology (docs/NOVELTY_GATE.md).
+
+## 4. Limitations
+Simulated only; static links; honest outcome reporters; no recommendation sharing; no trust
+decay; stretch metric affected by fake links; 10 seeds (30 at AS level). AS level: one subsampled CAIDA
+snapshot, uniform 0.1-1 % link loss, abstract receipts (ack-dropping framing not modelled).
+
+## 5. Next experiments
 Trust decay; badmouthing reporters; exploration (epsilon-greedy) to restore detection; larger topologies
-(1,000 nodes); an AS-level topology; comparison against SCION-style path choice with path validation.
+(1,000 nodes); the full CAIDA graph; comparison against SCION-style path choice with path validation.

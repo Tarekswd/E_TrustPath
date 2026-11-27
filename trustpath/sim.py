@@ -42,6 +42,11 @@ class SimConfig:
     #   reporter's claims agree with the source's own observations (see agreement.py).
     # "agreement_flow_bound": agreement, plus flow binding (reports only from physically attached nodes).
     report_policy: str = "naive"
+    # Forgetting: every epoch, trust evidence shrinks towards the prior by this factor (1.0 = no decay).
+    trust_decay: float = 1.0
+    # Exploration: this fraction of flows of a trust strategy uses the shortest path instead, to keep gathering
+    # evidence about nodes the trust ranking avoids (0.0 = pure exploitation).
+    explore: float = 0.0
 
 
 def run(cfg: SimConfig) -> dict:
@@ -50,6 +55,10 @@ def run(cfg: SimConfig) -> dict:
         raise ValueError(f"report_policy must be one of {policies}")
     if cfg.report_policy.startswith("agreement") and cfg.attribution != "e2e":
         raise ValueError("agreement policy supports e2e attribution only")
+    if not 0.0 < cfg.trust_decay <= 1.0 or not 0.0 <= cfg.explore <= 1.0:
+        raise ValueError("trust_decay must be in (0, 1], explore in [0, 1]")
+    if cfg.trust_decay < 1.0 and cfg.report_policy.startswith("agreement"):
+        raise ValueError("trust_decay is not implemented for the agreement policy")
     net = Network(cfg.net)
     trust = TrustTable(cfg.attribution)
     local: dict[int, TrustTable] = {}  # report_policy == "local": per-source tables
@@ -89,21 +98,28 @@ def run(cfg: SimConfig) -> dict:
     # Separate streams so that every strategy sees the same flows (common random numbers).
     flow_rng = random.Random(cfg.net.seed * 7919 + 1)
     loss_rng = random.Random(cfg.net.seed * 7919 + 2)
+    explore_rng = random.Random(cfg.net.seed * 7919 + 4)
     honest = sorted(v for v in net.phys.nodes if not net.attacker_controlled(v))
     crashed: set[int] = set()
     true_lat = dict(nx.all_pairs_dijkstra_path_length(net.phys, weight="lat"))
 
-    sent = delivered = exposed = unreachable = copies = 0
-    stretch = []
+    sent = delivered = exposed = unreachable = copies = fake_paths = 0
+    stretch, stretch_real = [], []
     for epoch in range(cfg.epochs):
         if agree is not None:
             agree.refresh()
+        if cfg.trust_decay < 1.0:
+            for tb in [trust, *local.values()]:
+                tb.decay(cfg.trust_decay)
         if epoch == cfg.epochs // 2:
             crashed = set(net.to_crash)
         measuring = epoch >= cfg.warmup
         for _ in range(cfg.flows_per_epoch):
             src, dst = flow_rng.sample(honest, 2)
-            paths = select(net.view, src, dst, cfg.strategy, table_of(src), net.claimed_rel)
+            strategy = cfg.strategy
+            if cfg.explore and explore_rng.random() < cfg.explore and strategy.startswith("trust"):
+                strategy = "shortest"
+            paths = select(net.view, src, dst, strategy, table_of(src), net.claimed_rel)
             if measuring:
                 sent += 1
             if not paths:
@@ -118,8 +134,13 @@ def run(cfg: SimConfig) -> dict:
                 copies += len(paths)
                 delivered += ok_any
                 exposed += any(net.attacker_controlled(v) for v in paths[0][1:-1])
-                lat = sum(net.phys.edges[u, v]["lat"] if net.phys.has_edge(u, v) else 1.0 for u, v in zip(paths[0], paths[0][1:]))
+                hops = list(zip(paths[0], paths[0][1:]))
+                fake = not all(net.phys.has_edge(u, v) for u, v in hops)  # colluders' fake link, counted as 1 ms
+                lat = sum(net.phys.edges[u, v]["lat"] if net.phys.has_edge(u, v) else 1.0 for u, v in hops)
                 stretch.append(lat / true_lat[src][dst])
+                fake_paths += fake
+                if not fake:
+                    stretch_real.append(lat / true_lat[src][dst])
 
         if cfg.fake_reports_per_epoch and net.malicious:
             liars = sorted(net.malicious) + sorted(net.sybil_ids)
@@ -165,6 +186,8 @@ def run(cfg: SimConfig) -> dict:
         "unreachable": unreachable,
         "copies_per_flow": copies / max(sent - unreachable, 1),
         "median_stretch": statistics.median(stretch) if stretch else float("nan"),
+        "median_stretch_real": statistics.median(stretch_real) if stretch_real else float("nan"),
+        "fake_link_paths": fake_paths / max(sent - unreachable, 1),
         "trust_precision": len(flagged & bad) / len(flagged) if flagged else float("nan"),
         "trust_recall": len(flagged & bad) / len(bad) if bad else float("nan"),
         "adcheck_precision": len(adflag & bad) / len(adflag) if adflag else float("nan"),

@@ -13,7 +13,7 @@ from pathlib import Path
 # two-sided 95% Student-t critical values by degrees of freedom (from standard tables)
 T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228,
        14: 2.145, 19: 2.093, 29: 2.045}
-METRICS = ("delivery_ratio", "exposure", "median_stretch", "copies_per_flow", "trust_precision", "trust_recall",
+METRICS = ("delivery_ratio", "exposure", "median_stretch", "median_stretch_real", "fake_link_paths", "copies_per_flow", "trust_precision", "trust_recall",
            "honest_trust_mean", "malicious_trust_mean", "fake_reports_accepted",
            "agree_weight_to_attackers", "agree_weight_to_honest")
 KEYS = {
@@ -21,6 +21,8 @@ KEYS = {
     "B_attribution": ("strategy", "attribution"),
     "C_sybil": ("net_sybils", "report_policy", "strategy"),
     "D_crash": ("strategy",),
+    "E_decay": ("trust_decay", "strategy"),
+    "F_explore": ("explore", "strategy"),
 }
 
 

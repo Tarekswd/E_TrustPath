@@ -9,6 +9,8 @@ Scenarios (all values are SIMULATED, not measured on a real network):
   C sybil                     f = .1, open admission, {0,10,50} Sybils, 5 fake reports/identity/epoch,
                               naive vs flow-bound vs flow-bound + trust-weighted report acceptance
   D crash                     f = 0, 15 % honest nodes crash halfway (benign failures / partitions)
+  E decay                     D crash with trust forgetting, decay factor per epoch in {1, .9, .8, .7}
+  F explore                   f = .2, trust strategies, fraction of flows on the shortest path in {0, .05, .1, .2, .3}
 """
 import csv
 import os
@@ -40,6 +42,12 @@ def grid(seeds):
                                                strategy=st, fake_reports_per_epoch=5, report_policy=policy)
         for st in STRATEGIES:
             yield "D_crash", SimConfig(NetConfig(seed=s, crash_frac=0.15), strategy=st)
+        for d in (1.0, 0.9, 0.8, 0.7):
+            for st in ("trust", "trust_multi"):
+                yield "E_decay", SimConfig(NetConfig(seed=s, crash_frac=0.15), strategy=st, trust_decay=d)
+        for eps in (0.0, 0.05, 0.1, 0.2, 0.3):
+            for st in ("trust", "trust_multi"):
+                yield "F_explore", SimConfig(NetConfig(seed=s, malicious_frac=0.2), strategy=st, explore=eps)
 
 
 def job(item):

@@ -28,6 +28,12 @@ class TrustTable:
     def observations(self, v: int) -> float:
         return self.alpha[v] + self.beta[v] - 2.0
 
+    def decay(self, gamma: float) -> None:
+        """Forgetting: shrink accumulated evidence towards the Beta(1, 1) prior (gamma = 1 keeps everything)."""
+        for v in self.alpha:
+            self.alpha[v] = 1.0 + gamma * (self.alpha[v] - 1.0)
+            self.beta[v] = 1.0 + gamma * (self.beta[v] - 1.0)
+
     def record(self, intermediates: list[int], delivered: bool, dropped_at: int | None, weight: float = 1.0) -> None:
         """`weight` scales the evidence (1.0 = one full observation)."""
         if not intermediates or weight <= 0:

@@ -1,6 +1,7 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (sections 1-2: `results/20261123T055852Z/`, 600 runs, 10 seeds;
+*Working draft. All results are SIMULATED (sections 1-2: `results/20261127T144224Z/`, 780 runs, 10 seeds; its
+scenarios A-D reproduce `results/20261123T055852Z/` exactly;
 section 3: CAIDA AS-level runs, 30 seeds, `results/AS_FINDINGS.md`). Sections marked
 **[TODO]** are not done. Related work is partly checked (docs/NOVELTY_GATE.md); no novelty is claimed yet.*
 
@@ -43,8 +44,10 @@ See README (trust model) and docs/THREAT_MODEL.md. 100-node random geometric gra
 | 0.3 | trust | 0.860 +/- 0.027 | 0.230 +/- 0.089 | 1.130 +/- 0.037 | 1 |
 | 0.3 | trust_multi | 0.954 +/- 0.018 | 0.123 +/- 0.067 | 1.076 +/- 0.026 | 1.97 |
 
-Stretch below 1 for advertised-metric strategies happens because colluders' fake 1 ms links count as 1 ms in the
-stretch computation. **[TODO]** Report it separately.
+Stretch below 1 for advertised-metric strategies comes entirely from colluders' fake 1 ms links, which count as 1 ms
+in the stretch computation: 36-74 % of their paths (f = 0.1-0.3) use a fake link, and over paths without one their
+median stretch is 1.000. Trust strategies never route over a fake link (0 % at every f), because the attackers
+behind the fake link drop the traffic and lose trust.
 
 ### B. Evidence model (f = 0.2)
 Per-hop attribution did not change delivery (trust 0.875 vs 0.882 e2e; multipath 0.971 vs 0.968; CIs overlap).
@@ -98,13 +101,42 @@ pair of sources ever shared enough evidence (all weights 0). They were not tuned
 
 ### D. Benign crashes (15 % of nodes crash at epoch 20)
 trust 0.724 +/- 0.079, shortest 0.730 +/- 0.023, trust_multi 0.919 +/- 0.032. Single-path trust gives no benefit,
-because the reputation accumulated before the crash outweighs new failures (no decay). **[TODO]** Add forgetting
-(exponential decay or a sliding window) and re-run.
+because the reputation accumulated before the crash outweighs new failures (no decay).
+
+### E. Forgetting (benign crashes as in D)
+Every epoch, each trust table's evidence shrinks towards the Beta(1, 1) prior: alpha <- 1 + g (alpha - 1), and the same
+for beta.
+
+| decay g | trust delivery | trust_multi delivery | trust stretch |
+|---|---|---|---|
+| 1.0 (none) | 0.724 +/- 0.079 | 0.919 +/- 0.032 | 1.104 |
+| 0.9 | 0.816 +/- 0.054 | 0.946 +/- 0.022 | 1.114 |
+| 0.8 | 0.862 +/- 0.034 | 0.961 +/- 0.016 | 1.127 |
+| 0.7 | 0.878 +/- 0.029 | 0.968 +/- 0.015 | 1.130 |
+
+Forgetting fixes the crash case: at g = 0.7, single-path trust beats shortest-path routing by 0.15 and two-path trust
+reaches 0.968, at 2-3 % more stretch (1.104 to 1.130). Not tested: forgetting against malicious nodes. An on-off attacker can
+exploit it by behaving well until its record is forgotten.
 
 ### Detection
 The trust threshold (< 0.35 after at least 5 observations) has recall of only 0.31-0.32 under shortest routing,
 and at most 0.09 under trust routing. Trust routing avoids suspected nodes, so they stop generating evidence.
-This is a known exploration-vs-exploitation tension; quantifying it is **[TODO]**.
+
+### F. Exploration (f = 0.2)
+A fraction e of each trust source's flows takes the shortest path instead, to keep gathering evidence:
+
+| e | trust delivery | trust recall | trust_multi delivery | trust_multi recall |
+|---|---|---|---|---|
+| 0 | 0.882 +/- 0.043 | 0.005 +/- 0.011 | 0.968 +/- 0.028 | 0.080 +/- 0.112 |
+| 0.05 | 0.865 +/- 0.043 | 0.215 +/- 0.045 | 0.940 +/- 0.027 | 0.240 +/- 0.075 |
+| 0.1 | 0.833 +/- 0.041 | 0.280 +/- 0.025 | 0.912 +/- 0.026 | 0.300 +/- 0.058 |
+| 0.2 | 0.788 +/- 0.033 | 0.310 +/- 0.023 | 0.847 +/- 0.025 | 0.340 +/- 0.047 |
+| 0.3 | 0.734 +/- 0.034 | 0.340 +/- 0.023 | 0.783 +/- 0.027 | 0.380 +/- 0.035 |
+
+This quantifies the tension. 5 % exploration recovers most of the detection recall (0.005 to 0.215) for a delivery
+loss within the CI (0.017). At 20-30 % recall matches or exceeds shortest-path routing (0.31), but each explored
+flow is exposed to attackers, so delivery falls by 0.09-0.15. Recall stays low in absolute terms because end-to-end
+evidence blames every node on a failed path.
 
 ## 3. AS-level partial deployment (CAIDA, 30 seeds; details and deviations in results/AS_FINDINGS.md)
 CAIDA AS relationships 2026-11-01, subsampled to about 1,293 ASes (300 transit + 1,000 stubs), SCION-like valley-free
@@ -126,10 +158,10 @@ Closest prior work: Zhang et al. (CoNEXT 2008, PAAI-1/2) assume every node on on
 shortest-path routing, no end-host path selection and no AS-level topology (docs/NOVELTY_GATE.md).
 
 ## 4. Limitations
-Simulated only; static links; honest outcome reporters; no recommendation sharing; no trust
-decay; stretch metric affected by fake links; 10 seeds (30 at AS level). AS level: one subsampled CAIDA
+Simulated only; static links; honest outcome reporters; no recommendation sharing; forgetting
+tested only against benign crashes; stretch over fake links reported separately (section 2.A); 10 seeds (30 at AS level). AS level: one subsampled CAIDA
 snapshot, uniform 0.1-1 % link loss, abstract receipts (ack-dropping framing not modelled).
 
 ## 5. Next experiments
-Trust decay; badmouthing reporters; exploration (epsilon-greedy) to restore detection; larger topologies
+Forgetting against on-off attackers; adaptive exploration (explore more when recall is low); badmouthing reporters; larger topologies
 (1,000 nodes); the full CAIDA graph; comparison against SCION-style path choice with path validation.

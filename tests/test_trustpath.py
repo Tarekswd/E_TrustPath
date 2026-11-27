@@ -67,6 +67,38 @@ class TrustMath(unittest.TestCase):
         t.record([1, 2, 3], False, 2)
         self.assertEqual((t.alpha[1], t.beta[2], t.beta[3]), (2.0, 2.0, 1.0))
 
+    def test_decay_shrinks_evidence_towards_prior(self):
+        t = TrustTable("e2e")
+        t.record([1], True, None)
+        t.record([1], True, None)  # alpha 3, beta 1
+        t.decay(0.5)
+        self.assertEqual((t.alpha[1], t.beta[1]), (2.0, 1.0))
+        t.decay(1.0)
+        self.assertEqual((t.alpha[1], t.beta[1]), (2.0, 1.0))
+
+
+class ForgettingAndExploration(unittest.TestCase):
+    def _cfg(self, **kw):
+        return SimConfig(NetConfig(seed=3, malicious_frac=0.2), epochs=12, warmup=2, flows_per_epoch=20, **kw)
+
+    def test_defaults_unchanged_and_new_metrics_present(self):
+        r = run(self._cfg())
+        self.assertEqual(str(r), str(run(self._cfg(trust_decay=1.0, explore=0.0))))  # str: NaN != NaN
+        self.assertTrue(0.0 <= r["fake_link_paths"] <= 1.0)
+        self.assertIn("median_stretch_real", r)
+
+    def test_exploration_changes_routing_and_full_exploration_is_shortest(self):
+        trust, explore = run(self._cfg()), run(self._cfg(explore=1.0))
+        shortest = run(self._cfg(strategy="shortest"))
+        self.assertNotEqual(trust["exposure"], explore["exposure"])
+        self.assertEqual(explore["delivery_ratio"], shortest["delivery_ratio"])  # same flows, same paths
+
+    def test_invalid_decay_and_explore_rejected(self):
+        for kw in ({"trust_decay": 0.0}, {"trust_decay": 1.5}, {"explore": -0.1},
+                   {"trust_decay": 0.9, "report_policy": "agreement"}):
+            with self.assertRaises(ValueError):
+                run(self._cfg(**kw))
+
 
 class ControlPlane(unittest.TestCase):
     def test_forged_ads_rejected_and_never_in_view(self):

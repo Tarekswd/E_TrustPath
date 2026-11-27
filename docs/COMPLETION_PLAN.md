@@ -213,7 +213,21 @@ network size per topology, oracle gap bar chart.
 Artifact: one command reproduces every table (`experiments/run.py` and `run_as.py` with a `--paper` flag), a
 pinned requirements.txt, a Dockerfile, and a README section mapping each table and figure to its results folder.
 
-## Suggested order and effort
+## Novelty check result (2026-11-27) and revised priority
+
+docs/NOVELTY_GATE.md (last section): on-off attackers vs forgetting (TrustGuard, WWW 2005), reputation-gaming
+attackers, and bandit / Thompson exploration for routing (Talebi et al. 2013, Zhu & Modiano 2018, Zhou et al.
+2016) are known in general. The uncovered contribution is the AS-level part: partial deployment, the
+adopter-aware attacker, partial receipts by degree (contrast with FAIR, ICNP 2015) and agreement filtering.
+So Phases 1.1-1.3 and 2.1 become robustness checks of the AS-level design, run in assim.py (which already has
+`on_off`), not separate contributions; Phase 3.3 (full CAIDA graph) moves up because it strengthens the actual
+contribution.
+
+Revised order: 3.3 full CAIDA + snapshots, then 4 baselines at AS level (oracle, random), then 1.1/1.2 on-off and
+asymmetric forgetting in assim.py, then 2.1 Thompson as one robustness row, then 6 statistics, 7 and 8. The
+100-node model stays as the motivating small-scale study (sections 1-2 of the paper).
+
+## Suggested order and effort (original, superseded by the revised order above)
 
 | Order | Work | Why first | Effort (estimate) |
 |---|---|---|---|

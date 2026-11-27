@@ -56,3 +56,28 @@ Tomography* is the companion paper; not checked).
 ## Still to do
 - Check Stefan Schmid's "End-Host Path Selection" work (seen on his homepage) and SCION path-selection papers from
   ETH NetSec, 2020-2026.
+
+## Check of the completion-plan hypotheses (2026-11-27, before implementing docs/COMPLETION_PLAN.md)
+
+Queries: web "on-off attack trust management forgetting factor reputation system defense"; research index "Thompson
+sampling multi-armed bandit path selection adversarial packet dropping nodes reputation routing"; web "SCION
+end-host path selection security malicious AS reputation path-aware networking Schmid"; the SCION publication list
+(scion-architecture.net/archive/pages/publications/).
+
+| Work | What it covers | Consequence |
+|---|---|---|
+| Srivatsa, Xiong, Liu, *TrustGuard*, WWW 2005 (abstract read) | reputation against "strategic malicious nodes that continuously change their behavior", fake-transaction flooding, dishonest feedback | on-off attackers vs reputation memory is a known problem: H-T5 is not a contribution by itself |
+| IoT on-off detection (e.g. "A Smart Trust Management Method to Detect On-Off Attacks in the IoT"; title and snippet only) | on-off detection in trust management | same |
+| Talebi et al. arXiv 1309.7367; Zhu & Modiano arXiv 1810.10637; Zhou, Cheng, Wu arXiv 1610.03348 (abstracts) | online shortest-path routing as a combinatorial bandit with end-to-end feedback, including adversarial link states | bandit / Thompson exploration for routing is known: H-T7 is an application, not a contribution |
+| Pappas, Reischuk, Perrig, *FAIR*, ICNP 2015 (read, QA pass) | forwarding accountability: transit ASes mark packets, traffic-profile violations give proofs of misbehaviour; "benefits also in sparse deployment"; DDoS use case, CAIDA traces | closest new work to H-T3 (evidence under sparse deployment); no per-AS reputation, no path selection, no partial adoption of selection. Cite and contrast |
+| Scherrer, Legner, Perrig, Schmid, *An Axiomatic Perspective on the Performance Effects of End-Host Path Selection*, PERFORMANCE 2021; Scherrer et al., *Incentivizing Stable Path Selection*; Lee et al., *Source-Based Path Selection: The Data Plane Perspective*, CFI 2015 (titles/snippets) | performance and stability of end-host path selection | performance, not adversarial ASes; no overlap with H-T1 to H-T4 (titles only, not read) |
+
+Verdict:
+- **Still uncovered (the contribution):** partial deployment of trust-aware path selection on an AS topology,
+  the adopter-aware attacker (H-T2), partial receipts placed by degree (H-T3, now contrasted with FAIR), and the
+  agreement filter under conflicting attackers (H-T4).
+- **Known in general (H-T5 on-off vs forgetting, H-T6 reputation-gaming attacker, H-T7 bandit exploration):** run
+  them as robustness checks of the AS-level design, citing TrustGuard and the bandit-routing papers, not as
+  contributions.
+- **Not novelty work (H-T8 scale):** needed for credibility only.
+

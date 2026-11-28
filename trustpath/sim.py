@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 import statistics
+import time
 from dataclasses import asdict, dataclass
 
 import networkx as nx
@@ -72,10 +73,21 @@ def run(cfg: SimConfig) -> dict:
     lie_rng = random.Random(cfg.net.seed * 7919 + 3)
     accepted_fake = rejected_fake = 0
 
+    report_bytes = 0
+    report_crypto_s = 0.0
+
     def submit(r: OutcomeReport) -> bool:
         """Sign as the reporter, verify against the registry, apply the acceptance policy, record."""
+        nonlocal report_bytes, report_crypto_s
         ident = net.ids.get(r.reporter)
-        if ident is None or not verify_report(net.registry, r, sign_report(ident, r)):
+        if ident is None:
+            return False
+        t0 = time.perf_counter()
+        sig = sign_report(ident, r)
+        ok = verify_report(net.registry, r, sig)
+        report_crypto_s += time.perf_counter() - t0
+        report_bytes += len(r.encode()) + len(sig)
+        if not ok:
             return False
         if agree is not None:
             if cfg.report_policy == "agreement_flow_bound" and r.reporter not in net.phys:
@@ -200,4 +212,10 @@ def run(cfg: SimConfig) -> dict:
         "agree_weight_to_attackers": w_att,
         "agree_weight_to_honest": w_hon,
         "malicious_trust_mean": statistics.fmean(trust.trust(v) for v in net.malicious) if net.malicious else float("nan"),
+        # control-plane cost of the signature scheme (bytes exact; CPU seconds measured on this machine)
+        "ad_bytes": net.ad_bytes,
+        "key_bytes": net.key_bytes,
+        "report_bytes_per_epoch": report_bytes / cfg.epochs,
+        "ad_crypto_s": net.ad_crypto_s,
+        "report_crypto_s": report_crypto_s,
     }

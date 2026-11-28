@@ -15,6 +15,11 @@ from trustpath.sim import SimConfig, run  # noqa: E402
 from trustpath.trust import TrustTable  # noqa: E402
 
 
+def _det(r):
+    """Comparable form of a run result: repr (NaN != NaN) without the measured CPU-time fields."""
+    return repr({k: v for k, v in r.items() if not k.endswith("_crypto_s")})
+
+
 class Identities(unittest.TestCase):
     def setUp(self):
         self.reg = Registry("controlled")
@@ -44,6 +49,33 @@ class Identities(unittest.TestCase):
     def test_deterministic_keys(self):
         self.assertEqual(Identity(5, 1).public, Identity(5, 1).public)
         self.assertNotEqual(Identity(5, 1).public, Identity(5, 2).public)
+
+
+class PostQuantumSignatures(unittest.TestCase):
+    def test_mldsa_ads_verify_and_tampering_rejected(self):
+        for scheme in ("mldsa44", "mldsa65", "mldsa87"):
+            reg = Registry("controlled", scheme)
+            a = Identity(1, 9, scheme)
+            self.assertTrue(reg.admit(a, True))
+            s = sign_ad(a, LinkAd(1, 2, 10.0, 0.98, 1))
+            self.assertTrue(verify_ad(reg, s))
+            self.assertFalse(verify_ad(reg, SignedAd(LinkAd(1, 2, 1.0, 0.98, 1), s.signature)))
+
+    def test_registry_rejects_other_scheme_and_keys_are_deterministic(self):
+        self.assertFalse(Registry("controlled", "mldsa44").admit(Identity(1, 9), True))  # ed25519 identity
+        self.assertEqual(Identity(5, 1, "mldsa44").public, Identity(5, 1, "mldsa44").public)
+        with self.assertRaises(ValueError):
+            NetConfig(sig_scheme="rsa").validate()
+
+    def test_scheme_changes_bytes_not_routing(self):
+        def r(scheme):
+            return run(SimConfig(NetConfig(seed=3, malicious_frac=0.2, sig_scheme=scheme), epochs=8, warmup=2,
+                                 flows_per_epoch=15))
+        ed, pq = r("ed25519"), r("mldsa44")
+        for k in ("delivery_ratio", "exposure", "rejected_ads", "trust_recall"):
+            self.assertEqual(str(ed[k]), str(pq[k]))
+        self.assertGreater(pq["ad_bytes"], 30 * ed["ad_bytes"] / 2)
+        self.assertGreater(pq["report_bytes_per_epoch"], ed["report_bytes_per_epoch"])
 
 
 class TrustMath(unittest.TestCase):
@@ -83,7 +115,7 @@ class ForgettingAndExploration(unittest.TestCase):
 
     def test_defaults_unchanged_and_new_metrics_present(self):
         r = run(self._cfg())
-        self.assertEqual(str(r), str(run(self._cfg(trust_decay=1.0, explore=0.0))))  # str: NaN != NaN
+        self.assertEqual(_det(r), _det(run(self._cfg(trust_decay=1.0, explore=0.0))))
         self.assertTrue(0.0 <= r["fake_link_paths"] <= 1.0)
         self.assertIn("median_stretch_real", r)
 
@@ -220,7 +252,7 @@ class Routing(unittest.TestCase):
 class Simulation(unittest.TestCase):
     def test_deterministic(self):
         cfg = lambda: SimConfig(NetConfig(seed=2, malicious_frac=0.1), epochs=6, warmup=2, flows_per_epoch=10)
-        self.assertEqual(repr(run(cfg())), repr(run(cfg())))  # repr: NaN != NaN
+        self.assertEqual(_det(run(cfg())), _det(run(cfg())))
 
     def test_no_attackers_high_delivery(self):
         r = run(SimConfig(NetConfig(seed=2), epochs=6, warmup=2, flows_per_epoch=20))

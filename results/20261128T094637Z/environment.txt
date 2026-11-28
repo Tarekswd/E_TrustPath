@@ -1,0 +1,5 @@
+date_utc: 2026-11-28T09:49:43Z
+runs: 80 (10 seeds), wall time 186 s
+python: 3.12.3 (Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39)
+networkx: 3.7, cryptography: 50.0.2
+all metrics are simulated (see README: Simulation model)

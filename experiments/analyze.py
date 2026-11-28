@@ -15,7 +15,8 @@ T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8:
        14: 2.145, 19: 2.093, 29: 2.045}
 METRICS = ("delivery_ratio", "exposure", "median_stretch", "median_stretch_real", "fake_link_paths", "copies_per_flow", "trust_precision", "trust_recall",
            "honest_trust_mean", "malicious_trust_mean", "fake_reports_accepted",
-           "agree_weight_to_attackers", "agree_weight_to_honest")
+           "agree_weight_to_attackers", "agree_weight_to_honest",
+           "ad_bytes", "key_bytes", "report_bytes_per_epoch", "ad_crypto_s", "report_crypto_s")
 KEYS = {
     "A_fraction": ("net_malicious_frac", "strategy"),
     "B_attribution": ("strategy", "attribution"),
@@ -23,6 +24,7 @@ KEYS = {
     "D_crash": ("strategy",),
     "E_decay": ("trust_decay", "strategy"),
     "F_explore": ("explore", "strategy"),
+    "P_pq_signatures": ("net_sig_scheme", "net_sybils", "report_policy"),
 }
 
 

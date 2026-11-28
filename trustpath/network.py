@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import math
 import random
+import time
 from dataclasses import dataclass
 
 import networkx as nx
 
-from .identity import Identity, LinkAd, Registry, SignedAd, sign_ad, verify_ad
+from .identity import SCHEMES, Identity, LinkAd, Registry, SignedAd, sign_ad, verify_ad
 
 
 @dataclass(frozen=True)
@@ -45,12 +46,15 @@ class NetConfig:
     sybils: int = 0  # extra attacker identities (reputation-layer Sybils; see sim.py)
     admission: str = "controlled"
     crash_frac: float = 0.0  # honest nodes that crash halfway through the run (see sim.py)
+    sig_scheme: str = "ed25519"  # signatures on link ads and outcome reports: ed25519 | mldsa44 | mldsa65 | mldsa87
 
     def validate(self) -> None:
         if self.n < 10:
             raise ValueError("n must be >= 10")
         if not 0 <= self.malicious_frac < 0.9 or not 0 <= self.crash_frac < 0.9:
             raise ValueError("fractions must be in [0, 0.9)")
+        if self.sig_scheme not in SCHEMES:
+            raise ValueError(f"sig_scheme must be one of {tuple(SCHEMES)}")
         unknown = set(self.mix) - set(BEHAVIORS)
         if unknown:
             raise ValueError(f"unknown behaviours {unknown}")
@@ -87,8 +91,9 @@ class Network:
         honest = [v for v in nodes if v not in self.malicious]
         self.to_crash = set(self.rng.sample(honest, round(cfg.crash_frac * cfg.n)))
 
-        self.registry = Registry(cfg.admission)
-        self.ids = {v: Identity(v, cfg.seed) for v in nodes}
+        t0 = time.perf_counter()
+        self.registry = Registry(cfg.admission, cfg.sig_scheme)
+        self.ids = {v: Identity(v, cfg.seed, cfg.sig_scheme) for v in nodes}
         for ident in self.ids.values():
             self.registry.admit(ident, operator_approved=True)
 
@@ -110,7 +115,7 @@ class Network:
         self.sybil_ids: set[int] = set()
         for k in range(cfg.sybils):
             sid = cfg.n + k
-            self.ids[sid] = Identity(sid, cfg.seed)
+            self.ids[sid] = Identity(sid, cfg.seed, cfg.sig_scheme)
             if self.registry.admit(self.ids[sid], operator_approved=False):
                 self.sybil_ids.add(sid)
 
@@ -125,6 +130,10 @@ class Network:
 
         self.ads = ads
         self._build_view()
+        # Control-plane cost of the signature scheme (keygen, signing and verifying every ad, and the bytes).
+        self.ad_crypto_s = time.perf_counter() - t0
+        self.ad_bytes = sum(len(s.ad.encode()) + len(s.signature) for s in ads)
+        self.key_bytes = sum(len(i.public) for i in self.ids.values())
 
     def _ad(self, origin: int, neighbor: int, lat: float) -> SignedAd:
         b = self.behavior.get(origin, HONEST)

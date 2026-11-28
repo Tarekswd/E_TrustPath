@@ -1,6 +1,7 @@
 # Observed-Behaviour Path Selection over Authenticated Topologies: A Simulation Study
 
-*Working draft. All results are SIMULATED (sections 1-2: `results/20261127T144224Z/`, 780 runs, 10 seeds; its
+*Working draft. All results are SIMULATED (sections 1-2: `results/20261127T144224Z/`, 780 runs, 10 seeds, and
+`results/20261128T094637Z/` for the PQ-signature scenario P; its
 scenarios A-D reproduce `results/20261123T055852Z/` exactly;
 section 3: CAIDA AS-level runs, 30 seeds, `results/AS_FINDINGS.md`). Sections marked
 **[TODO]** are not done. Related work is partly checked (docs/NOVELTY_GATE.md); no novelty is claimed yet.*
@@ -137,6 +138,25 @@ This quantifies the tension. 5 % exploration recovers most of the detection reca
 loss within the CI (0.017). At 20-30 % recall matches or exceeds shortest-path routing (0.31), but each explored
 flow is exposed to attackers, so delivery falls by 0.09-0.15. Recall stays low in absolute terms because end-to-end
 evidence blames every node on a failed path.
+
+### P. Post-quantum signatures on ads and reports (`results/20261128T094637Z/`, 80 runs, 10 seeds)
+Link ads and outcome reports are signed with Ed25519 or ML-DSA-44/65/87 (`sig_scheme`; the `cryptography` package,
+keys derived from the seed). Routing outcomes are identical for all four schemes (delivery 0.882 +/- 0.043 at
+f = 0.2 in every case): the scheme changes cost, not behaviour.
+
+| | Ed25519 | ML-DSA-44 | ML-DSA-65 | ML-DSA-87 |
+|---|---|---|---|---|
+| all signed link ads (100 nodes) | 106 KB | 2.57 MB (24x) | 3.50 MB (33x) | 4.88 MB (46x) |
+| outcome reports per epoch (f = 0.2) | 4.0 KB | 98 KB (24x) | 134 KB (33x) | 187 KB (46x) |
+| reports per epoch, 50 Sybils with 5 fake reports each (flow_bound) | 31 KB | 832 KB (27x) | 1.13 MB (37x) | 1.58 MB (51x) |
+| registry public keys | 3.2 KB | 131 KB (41x) | 195 KB (61x) | 259 KB (81x) |
+| report sign + verify CPU per run, Sybil case (measured) | 7.1 s | 35.6 s | 54.3 s | 50.3 s |
+
+Signatures grow from 64 B to 2,420-4,627 B, so a signed ad or report no longer fits in one 1,280-byte IPv6 packet.
+The Sybil row shows a design lesson: the simulator verifies a report's signature before applying the flow-binding
+policy, so fabricated reports that are rejected anyway still cost a full verification. With ML-DSA that work is
+5-8x larger than with Ed25519. Applying the cheap policy check (is the reporter physically attached?) before the
+signature check removes this amplification; not yet implemented.
 
 ## 3. AS-level partial deployment (CAIDA, 30 seeds; details and deviations in results/AS_FINDINGS.md)
 CAIDA AS relationships 2026-11-01, subsampled to about 1,293 ASes (300 transit + 1,000 stubs), SCION-like valley-free
